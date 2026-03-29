@@ -1,0 +1,198 @@
+% ACL 2026 / EMNLP 2026 Format
+\documentclass[11pt]{article}
+\usepackage{acl}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{subcaption}
+
+\title{A Comprehensive Benchmark of Retrieval Methods for\\Text-and-Table RAG Systems}
+
+\author{
+  S\"uleyman Akarsu \\
+  \texttt{mftnakrsu@github} \\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Retrieval-Augmented Generation (RAG) systems critically depend on retrieval quality,
+yet no comprehensive comparison of modern retrieval methods exists for documents
+containing both text and tabular data. We systematically benchmark 15+ retrieval
+strategies---spanning sparse (BM25, SPLADE), dense (multiple embedding models),
+late interaction (ColBERT), hybrid fusion (RRF, convex combination), query expansion
+(HyDE, multi-query), index augmentation (HyPE, contextual retrieval), and
+hierarchical approaches (parent-child, RAPTOR)---on the T\textsuperscript{2}-RAGBench
+dataset comprising 23,088 financial QA pairs over 7,318 documents. We evaluate both
+retrieval quality (Recall@k, MRR, nDCG) and end-to-end generation quality (Number Match,
+F1, BERTScore) with statistical significance testing. Our results show that
+[KEY FINDING 1], [KEY FINDING 2], and [KEY FINDING 3]. We provide practical
+recommendations for RAG system design and release our full benchmark code.
+\end{abstract}
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+
+Retrieval-Augmented Generation (RAG) has emerged as the dominant paradigm for
+grounding large language models in external knowledge \cite{lewis2020rag}.
+The quality of the retrieval component is critical: if relevant documents are not
+retrieved, no amount of generation capability can compensate.
+
+While numerous retrieval methods have been proposed---from classical sparse
+retrieval (BM25) to learned dense representations, late interaction models,
+and hybrid approaches---practitioners face a fragmented landscape with limited
+guidance on which method to use, especially for \textbf{heterogeneous documents
+containing both text and tables}.
+
+Financial documents exemplify this challenge: earnings reports, SEC filings,
+and annual reports contain narrative text interspersed with numerical tables.
+Retrieving the correct context for a question like ``What was the year-over-year
+revenue growth?'' requires matching both textual descriptions and specific
+numerical cells---a task that strains purely semantic retrieval methods.
+
+The recently introduced T\textsuperscript{2}-RAGBench \cite{strich2026t2ragbench}
+provides a rigorous benchmark for this setting, with 23,088 question-context-answer
+triples from 7,318 financial documents. However, the original paper evaluated
+only six retrieval methods with two metrics. Many modern approaches---ColBERT,
+contextual retrieval, HyPE, RAPTOR, and recent reranking models---remain untested
+on this benchmark.
+
+\paragraph{Contributions.} We make the following contributions:
+\begin{enumerate}
+  \item We present the most comprehensive RAG retrieval benchmark to date,
+    systematically evaluating 15+ methods on T\textsuperscript{2}-RAGBench.
+  \item We provide multi-dimensional evaluation covering retrieval metrics
+    (Recall@k, MRR, nDCG, MAP), generation metrics (Number Match, F1, BERTScore),
+    and RAG-specific metrics, with statistical significance testing.
+  \item We conduct extensive ablation studies isolating the effects of embedding
+    models, chunk sizes, rerankers, and fusion strategies.
+  \item We provide actionable recommendations with cost-accuracy trade-off
+    analysis for practitioners building text-and-table RAG systems.
+\end{enumerate}
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{RAG Retrieval Methods.}
+% TODO: Taxonomy of methods (sparse, dense, hybrid, late interaction, etc.)
+
+\paragraph{Text-and-Table QA.}
+% TODO: FinQA, TAT-QA, HybridQA, OTT-QA
+
+\paragraph{RAG Benchmarks.}
+% TODO: BEIR, MTEB, KILT, CRAG, RGB
+
+% ============================================================
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Dataset: T\textsuperscript{2}-RAGBench}
+\label{sec:dataset}
+
+T\textsuperscript{2}-RAGBench \cite{strich2026t2ragbench} contains 23,088
+question-context-answer triples derived from three financial QA datasets:
+FinQA (8,281 pairs), ConvFinQA (3,458 pairs), and TAT-DQA (11,349 pairs).
+The corpus comprises 7,318 unique documents with an average length of 920 tokens,
+containing both narrative text and markdown-formatted tables.
+
+All answers are numerical, and questions have been reformulated to be
+context-independent (91.3\% validated by human experts).
+
+\subsection{Retrieval Methods Under Evaluation}
+\label{sec:methods}
+
+% TODO: 1 paragraph per method
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+\paragraph{Retrieval Metrics.}
+We report Recall@$k$ ($k \in \{1, 3, 5, 10, 20\}$), Mean Reciprocal Rank (MRR@$k$),
+normalized Discounted Cumulative Gain (nDCG@$k$), and Mean Average Precision (MAP).
+
+\paragraph{Generation Metrics.}
+Following T\textsuperscript{2}-RAGBench, our primary metric is Number Match (NM)
+with relative tolerance $\epsilon = 10^{-2}$. We additionally report token-level F1,
+ROUGE-L, and BERTScore.
+
+\paragraph{Statistical Testing.}
+We use paired bootstrap tests ($B = 10{,}000$) with Bonferroni correction
+for multiple comparisons, reporting significance at $p < 0.05$.
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+% TODO: Hardware, models, hyperparameters, reproducibility details
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Main Retrieval Results}
+\label{sec:main_results}
+
+% TODO: Main comparison table
+
+\subsection{End-to-End Generation Results}
+\label{sec:generation}
+
+% TODO: Generation results for top methods
+
+\subsection{Analysis by Question Type}
+\label{sec:subset_analysis}
+
+% TODO: Per-subset (FinQA, ConvFinQA, TAT-DQA) breakdown
+
+\subsection{Ablation Studies}
+\label{sec:ablations}
+
+% TODO: Embedding model, chunk size, reranker, fusion method ablations
+
+\subsection{Error Analysis}
+\label{sec:errors}
+
+% TODO: Failure mode categorization
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+% TODO: Key findings, practical recommendations, cost-accuracy trade-offs
+
+\paragraph{Limitations.}
+% TODO: Honest limitations
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+% TODO: Summary and future work
+
+% ============================================================
+\section*{Acknowledgments}
+% TODO
+
+\bibliography{references}
+\bibliographystyle{acl_natbib}
+
+\appendix
+
+\section{Hyperparameter Details}
+\label{app:hyperparams}
+
+\section{Full Results Tables}
+\label{app:full_results}
+
+\section{Prompt Templates}
+\label{app:prompts}
+
+\end{document}

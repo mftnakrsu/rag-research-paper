@@ -17,14 +17,6 @@ from src.evaluation.retrieval_metrics import (
     compute_per_query_retrieval,
     compute_retrieval_metrics,
 )
-from src.reranking.reranker import NoReranker, create_reranker
-from src.retrieval.base import BaseRetriever, create_embedder
-from src.retrieval.bm25_retriever import BM25Retriever
-from src.retrieval.colbert_retriever import ColBERTRetriever
-from src.retrieval.dense_retriever import DenseRetriever
-from src.retrieval.hybrid_retriever import HybridRetriever
-from src.retrieval.hyde_retriever import HyDERetriever
-from src.retrieval.multi_query_retriever import MultiQueryRetriever
 from src.utils.common import (
     RESULTS_DIR,
     ExperimentResult,
@@ -37,25 +29,34 @@ from src.utils.common import (
 logger = get_logger(__name__)
 
 
-def build_retriever(method: str, config: dict, doc_ids: list[str], documents: list[str]) -> BaseRetriever:
-    """Factory: build and index a retriever by method name."""
+def build_retriever(method: str, config: dict, doc_ids: list[str], documents: list[str]):
+    """Factory: build and index a retriever by method name.
 
+    Imports are lazy so each method only requires its own dependencies.
+    """
     emb_config = config["embedding_models"].get(
         config.get("_embedding_key", "openai_large")
     )
 
     if method == "bm25":
+        from src.retrieval.bm25_retriever import BM25Retriever
         retriever = BM25Retriever(
             k1=config["bm25"]["k1"], b=config["bm25"]["b"]
         )
         retriever.build_index(doc_ids, documents)
 
     elif method == "dense":
+        from src.retrieval.base import create_embedder
+        from src.retrieval.dense_retriever import DenseRetriever
         embedder = create_embedder(emb_config)
         retriever = DenseRetriever(embedder=embedder, name=f"dense_{emb_config['model']}")
         retriever.build_index(doc_ids, documents)
 
     elif method == "hybrid":
+        from src.retrieval.base import create_embedder
+        from src.retrieval.bm25_retriever import BM25Retriever
+        from src.retrieval.dense_retriever import DenseRetriever
+        from src.retrieval.hybrid_retriever import HybridRetriever
         embedder = create_embedder(emb_config)
         bm25 = BM25Retriever(k1=config["bm25"]["k1"], b=config["bm25"]["b"])
         bm25.build_index(doc_ids, documents)
@@ -70,10 +71,14 @@ def build_retriever(method: str, config: dict, doc_ids: list[str], documents: li
         )
 
     elif method == "colbert":
+        from src.retrieval.colbert_retriever import ColBERTRetriever
         retriever = ColBERTRetriever()
         retriever.build_index(doc_ids, documents)
 
     elif method == "hyde":
+        from src.retrieval.base import create_embedder
+        from src.retrieval.dense_retriever import DenseRetriever
+        from src.retrieval.hyde_retriever import HyDERetriever
         embedder = create_embedder(emb_config)
         dense = DenseRetriever(embedder=embedder, name="dense_hyde")
         dense.build_index(doc_ids, documents)
@@ -85,7 +90,11 @@ def build_retriever(method: str, config: dict, doc_ids: list[str], documents: li
         )
 
     elif method == "multi_query":
-        # Build hybrid as inner retriever
+        from src.retrieval.base import create_embedder
+        from src.retrieval.bm25_retriever import BM25Retriever
+        from src.retrieval.dense_retriever import DenseRetriever
+        from src.retrieval.hybrid_retriever import HybridRetriever
+        from src.retrieval.multi_query_retriever import MultiQueryRetriever
         embedder = create_embedder(emb_config)
         bm25 = BM25Retriever(k1=config["bm25"]["k1"], b=config["bm25"]["b"])
         bm25.build_index(doc_ids, documents)
@@ -151,11 +160,13 @@ def main(
         retriever = build_retriever(method, cfg, chunk_ids, chunk_texts)
     logger.info(f"Index built in {index_timer.elapsed:.1f}s")
 
-    # Setup reranker
+    # Setup reranker (lazy import)
     if reranker_key != "none" and reranker_key in cfg["rerankers"]:
+        from src.reranking.reranker import create_reranker
         reranker = create_reranker(cfg["rerankers"][reranker_key])
         rerank_top_k = cfg["rerankers"][reranker_key].get("top_n", top_k)
     else:
+        from src.reranking.reranker import NoReranker
         reranker = NoReranker()
         rerank_top_k = top_k
 
