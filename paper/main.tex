@@ -83,13 +83,104 @@ on this benchmark.
 \label{sec:related}
 
 \paragraph{RAG Retrieval Methods.}
-% TODO: Taxonomy of methods (sparse, dense, hybrid, late interaction, etc.)
+Retrieval methods for RAG span a broad spectrum of representation strategies.
+Classical sparse retrievers such as BM25 remain surprisingly competitive baselines,
+particularly in zero-shot out-of-domain settings on the BEIR benchmark \citep{thakur2021beir},
+owing to their lexical precision, interpretability, and scalability.
+Learned sparse models like SPLADE \citep{formal2021splade} extend this paradigm by
+learning neural term expansion weights, with recent work showing that decoder-only
+LLM backbones further improve sparse retrieval quality \citep{doshi2024mistralsplade}.
+On the dense side, dual-encoder architectures pioneered by DPR \citep{karpukhin2020dpr}
+encode queries and passages into a shared embedding space for efficient approximate nearest
+neighbor search. Subsequent embedding models---E5 \citep{wang2022e5}, E5-Mistral
+\citep{wang2024e5mistral}, and BGE-M3 \citep{chen2024bgem3}---have progressively
+advanced the state of the art on MTEB \citep{muennighoff2023mteb} and its multilingual
+successor MMTEB \citep{enevoldsen2025mmteb} through contrastive pre-training at scale
+and instruction-tuned embedding generation.
+Late-interaction models such as ColBERTv2 \citep{santhanam2022colbertv2}
+and its multilingual extension Jina-ColBERT-v2 \citep{sturua2024jinacolbert}
+offer a middle ground: they retain per-token representations for fine-grained matching
+while enabling pre-computation of document representations.
+Hybrid retrieval combines sparse and dense signals via Reciprocal Rank Fusion
+\citep{cormack2009rrf} or convex score combination, consistently improving recall
+by 15--30\% over single-method pipelines \citep{li2025ragbestpractices}.
+Two-stage reranking with cross-encoder models \citep{sun2023rankgpt} further refines
+ranked lists, with recent benchmarks reporting up to 28\% nDCG@10 improvement at modest
+latency cost \citep{gao2024ragsurvey}.
 
-\paragraph{Text-and-Table QA.}
-% TODO: FinQA, TAT-QA, HybridQA, OTT-QA
+\paragraph{Advanced Retrieval Strategies.}
+Beyond standard retrieve-then-generate pipelines, several strategies manipulate
+queries or indices to improve retrieval quality.
+\emph{Query expansion} approaches include HyDE \citep{gao2022hyde}, which generates a
+hypothetical answer document at query time and retrieves using its embedding, and
+RAG-Fusion \citep{raudaschl2023ragfusion}, which issues multiple LLM-rewritten query
+variants and merges results via RRF.
+In contrast, \emph{index augmentation} methods enrich document representations at
+indexing time: Contextual Retrieval \citep{anthropic2024contextual} prepends
+LLM-generated chunk summaries to each passage, while HyPE \citep{vake2025hype}
+precomputes hypothetical questions per chunk, transforming retrieval into
+question--question matching and improving context precision by up to 42 percentage
+points without added query-time latency.
+Late Chunking \citep{guenther2024latechunking} preserves cross-chunk context by
+applying long-context embedding models before splitting.
+Hierarchical retrieval strategies include RAPTOR \citep{sarthi2024raptor}, which
+builds recursive tree-structured summaries, and GraphRAG \citep{edge2024graphrag},
+which constructs entity-relation graphs for query-focused summarization.
+On the adaptive retrieval front, Self-RAG \citep{asai2023selfrag} trains models
+to self-reflect on whether retrieval is needed and to critique generated outputs,
+while CRAG \citep{yan2024crag} evaluates retrieved document quality and triggers
+corrective web searches when confidence is low.
+More recently, Agentic RAG architectures embed autonomous agents that dynamically
+plan multi-step retrieval, select among heterogeneous tools, and iteratively refine
+context \citep{singh2025agenticrag}.
 
-\paragraph{RAG Benchmarks.}
-% TODO: BEIR, MTEB, KILT, CRAG, RGB
+\paragraph{Text-and-Table Question Answering.}
+Answering questions over documents containing both text and tables poses unique
+challenges: models must locate relevant evidence across heterogeneous modalities
+and often perform numerical reasoning.
+\citet{chen2020hybridqa} introduced HybridQA, the first large-scale dataset requiring
+multi-hop reasoning over linked Wikipedia tables and passages.
+\citet{chen2021ottqa} extended this to an open-domain setting in OTT-QA, where models
+retrieve from over 400K table and 5M passage candidates.
+In the financial domain, FinQA \citep{chen2021finqa} provides expert-annotated
+question--program pairs over earnings reports, while TAT-QA \citep{zhu2021tatqa}
+focuses on diverse numerical operations (addition, comparison, counting) over
+hybrid tabular-textual contexts from financial filings.
+ConvFinQA \citep{chen2022convfinqa} extends FinQA to multi-turn conversational
+reasoning.
+A recent comprehensive survey of table QA in the LLM era \citep{nan2025tableqasurvey}
+highlights that despite advances in LLM-based table understanding, retrieval of the
+correct heterogeneous context remains a primary bottleneck---a finding that directly
+motivates our retrieval-focused evaluation on T\textsuperscript{2}-RAGBench
+\citep{strich2026t2ragbench}, which unifies FinQA, ConvFinQA, and TAT-DQA subsets
+into a single retrieval benchmark with 23,088 queries over 7,318 financial documents.
+
+\paragraph{RAG Benchmarks and Evaluation.}
+Standardized benchmarks have been critical for measuring retrieval and generation
+progress.
+BEIR \citep{thakur2021beir} established zero-shot evaluation across 18 diverse
+retrieval datasets, while MTEB \citep{muennighoff2023mteb} and MMTEB
+\citep{enevoldsen2025mmteb} broadened scope to 8 embedding tasks across 500+
+multilingual datasets.
+For knowledge-intensive NLP, KILT \citep{petroni2021kilt} unified five task types
+over a shared Wikipedia snapshot.
+RAG-specific benchmarks include RGB \citep{chen2024rgb}, which tests noise robustness,
+negative rejection, and counterfactual robustness; CRAG \citep{yang2024crag},
+which spans five domains with temporal dynamics; and RAGBench \citep{friel2024ragbench},
+which provides 100K examples with the explainable TRACe evaluation framework.
+For automated RAG evaluation without gold labels, RAGAS \citep{es2024ragas} introduced
+reference-free metrics for faithfulness and answer relevance, while ARES
+\citep{saadfalcon2024ares} fine-tunes lightweight LLM judges with prediction-powered
+inference.
+\citet{li2025ragbestpractices} provide a systematic empirical study of RAG design
+choices---chunk size, query expansion, retrieval stride---at COLING~2025.
+Our work differs from prior benchmarks in two key respects: (i) we focus specifically
+on \emph{retrieval method comparison} rather than LLM evaluation, and (ii) we target
+documents with mixed text-and-table content, a setting underrepresented in existing
+benchmarks. While T\textsuperscript{2}-RAGBench \citep{strich2026t2ragbench} evaluated
+six retrieval methods with two metrics, we extend coverage to 15+ methods with
+comprehensive retrieval and generation metrics, filling a critical gap in understanding
+which retrieval strategies best serve heterogeneous financial documents.
 
 % ============================================================
 \section{Methodology}
