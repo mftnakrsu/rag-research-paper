@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/raw/
+data/processed/
+*.egg-info/
+dist/
+build/
+.ruff_cache/
+.pytest_cache/
+*.faiss
+*.index
+wandb/
+.ipynb_checkpoints/

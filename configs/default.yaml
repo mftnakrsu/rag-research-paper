@@ -1,0 +1,138 @@
+# T²-RAGBench Retrieval Benchmark - Default Configuration
+
+seed: 42
+
+dataset:
+  name: "G4KMU/t2-ragbench"
+  subsets: ["FinQA", "ConvFinQA", "TAT-DQA"]
+  split: "test"  # evaluation split
+
+chunking:
+  strategy: "whole_doc"  # whole_doc | fixed | sentence | parent_child
+  chunk_size: 512
+  chunk_overlap: 64
+  parent_chunk_size: 1024
+
+embedding_models:
+  openai_large:
+    provider: "openai"
+    model: "text-embedding-3-large"
+    dimensions: 3072
+    batch_size: 100
+  openai_small:
+    provider: "openai"
+    model: "text-embedding-3-small"
+    dimensions: 1536
+    batch_size: 100
+  cohere:
+    provider: "cohere"
+    model: "embed-v4.0"
+    dimensions: 1024
+    input_type_query: "search_query"
+    input_type_doc: "search_document"
+    batch_size: 96
+  voyage:
+    provider: "voyage"
+    model: "voyage-3-large"
+    dimensions: 1024
+    batch_size: 128
+  bge_m3:
+    provider: "local"
+    model: "BAAI/bge-m3"
+    dimensions: 1024
+    batch_size: 32
+
+rerankers:
+  cohere:
+    provider: "cohere"
+    model: "rerank-v3.5"
+    top_n: 10
+  bge:
+    provider: "local"
+    model: "BAAI/bge-reranker-v2-m3"
+    batch_size: 32
+
+llm:
+  model: "gpt-4.1-mini"
+  temperature: 0.0
+  max_tokens: 256
+  provider: "openai"
+
+retrieval:
+  top_k_values: [1, 3, 5, 10, 20]
+  default_top_k: 5
+
+bm25:
+  k1: 1.2
+  b: 0.75
+  tokenizer: "split"  # split | nltk
+
+hybrid:
+  fusion_method: "rrf"  # rrf | cc | dbsf
+  rrf_k: 60
+  cc_alpha: 0.5
+  bm25_weight: 0.5
+  dense_weight: 0.5
+
+hyde:
+  llm_model: "gpt-4.1-mini"
+  num_generations: 1
+  prompt_template: |
+    Given the following question about financial data, write a short passage
+    that would contain the answer. Include specific numbers and financial terms.
+    Question: {query}
+    Passage:
+
+hype:
+  llm_model: "gpt-4.1-mini"
+  num_queries_per_chunk: 5
+  prompt_template: |
+    Given the following financial document passage, generate {n} diverse questions
+    that this passage could answer. Focus on numerical questions, comparisons,
+    and financial metrics.
+    Passage: {chunk}
+    Questions:
+
+contextual_retrieval:
+  llm_model: "gpt-4.1-mini"
+  prompt_template: |
+    <document>
+    {document}
+    </document>
+    Here is a chunk from the document:
+    <chunk>
+    {chunk}
+    </chunk>
+    Give a short succinct context to situate this chunk within the overall document
+    for improving search retrieval. Answer only with the succinct context.
+
+multi_query:
+  llm_model: "gpt-4.1-mini"
+  num_queries: 3
+  prompt_template: |
+    Generate {n} different versions of the following question to help retrieve
+    relevant financial documents. Each version should capture different aspects
+    or use different terminology.
+    Original question: {query}
+    Alternative questions:
+
+evaluation:
+  retrieval_metrics: ["recall", "mrr", "ndcg", "precision", "hit_rate", "map"]
+  generation_metrics: ["number_match", "exact_match", "f1", "rouge_l", "bertscore"]
+  k_values: [1, 3, 5, 10, 20]
+  significance_test: "bootstrap"
+  bootstrap_n: 10000
+  significance_level: 0.05
+
+generation:
+  prompt_template: |
+    Answer the following question based ONLY on the provided context.
+    If the answer is a number, provide just the number.
+    If you cannot answer from the context, say "UNANSWERABLE".
+
+    Context:
+    {context}
+
+    Question: {question}
+
+    Answer:
