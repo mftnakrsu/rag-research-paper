@@ -28,20 +28,21 @@ def paired_bootstrap_test(
     observed_diff = np.mean(a) - np.mean(b)
     diffs = a - b
 
+    # Bootstrap: resample differences, compute mean
     boot_diffs = []
-    count_ge = 0
     for _ in range(n_resamples):
         sample_idx = rng.randint(0, n, size=n)
-        boot_diff = np.mean(diffs[sample_idx])
-        boot_diffs.append(boot_diff)
-        if boot_diff >= abs(observed_diff) or boot_diff <= -abs(observed_diff):
-            count_ge += 1
+        boot_diffs.append(np.mean(diffs[sample_idx]))
 
     boot_diffs = np.array(boot_diffs)
-    p_value = count_ge / n_resamples
-
     ci_lower = float(np.percentile(boot_diffs, 2.5))
     ci_upper = float(np.percentile(boot_diffs, 97.5))
+
+    # Two-sided p-value: proportion of bootstrap samples crossing zero
+    if observed_diff > 0:
+        p_value = float(2 * np.mean(boot_diffs <= 0))
+    else:
+        p_value = float(2 * np.mean(boot_diffs >= 0))
 
     return {
         "p_value": p_value,
