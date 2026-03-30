@@ -206,7 +206,26 @@ context-independent (91.3\% validated by human experts).
 \subsection{Retrieval Methods Under Evaluation}
 \label{sec:methods}
 
-% TODO: 1 paragraph per method
+\paragraph{BM25 (Sparse Baseline).}
+We use Okapi BM25 \cite{thakur2021beir} with parameters $k_1 = 1.2$ and $b = 0.75$ via the \texttt{rank\_bm25} Python library as our sparse retrieval baseline. BM25 scores documents by weighted term-frequency overlap, applying sub-linear saturation and document-length normalization. Despite its simplicity, BM25 provides strong lexical matching for domain-specific terminology---company names, financial metrics, and fiscal period identifiers---that appear verbatim in both queries and documents, making it a particularly competitive baseline for financial retrieval.
+
+\paragraph{Dense Retrieval.}
+For dense retrieval we encode all queries and documents with OpenAI's \texttt{text-embedding-3-large} model (3{,}072 dimensions), accessed via an Azure AI Foundry endpoint. Document embeddings are indexed in a FAISS \texttt{IndexFlatIP} (exact inner-product search) to ensure reproducible, exhaustive nearest-neighbor retrieval without approximation error. At query time, the query embedding is compared against all document embeddings and the top-$k$ results are returned by cosine similarity. This configuration isolates the quality of learned semantic representations from any index approximation artifacts.
+
+\paragraph{Hybrid Retrieval (RRF).}
+Hybrid retrieval combines the complementary strengths of sparse and dense methods by fusing their ranked lists via Reciprocal Rank Fusion (RRF) \cite{cormack2009rrf}. For each document $d$ appearing at rank $r_i(d)$ in the ranked list of method $i$, the RRF score is computed as $\text{RRF}(d) = \sum_{i} 1 / (k + r_i(d))$, where $k = 60$ is a smoothing constant. We retrieve the full ranked lists from both BM25 and dense retrieval, compute RRF scores over their union, and return the top-$k$ documents by fused score. This unsupervised fusion requires no additional training and has been shown to consistently improve recall over individual methods \cite{li2025ragbestpractices}.
+
+\paragraph{Hybrid + Cohere Rerank.}
+To assess the benefit of neural reranking, we apply a two-stage pipeline: the hybrid RRF method first retrieves a candidate set of 50 documents, which are then reranked by the Cohere Rerank v4.0 Pro cross-encoder model, returning the top 10. Cross-encoder rerankers jointly attend to the query--document pair, enabling fine-grained relevance estimation that pointwise retrieval scores cannot capture \cite{sun2023rankgpt, gao2024ragsurvey}. This configuration measures whether the additional latency and cost of a reranking stage yield meaningful retrieval gains on text-and-table documents.
+
+\paragraph{HyDE (Hypothetical Document Embeddings).}
+HyDE \cite{gao2022hyde} addresses the query--document distribution mismatch by generating a hypothetical answer passage at query time and retrieving with its embedding rather than the original query embedding. We prompt GPT-4.1-mini (temperature 0) to produce a plausible answer passage for each query, embed the generated passage with \texttt{text-embedding-3-large}, and perform dense retrieval against the corpus index. By projecting the query into the document embedding space via an LLM-generated pseudo-document, HyDE can bridge vocabulary gaps between concise questions and verbose financial filings.
+
+\paragraph{Multi-Query Retrieval.}
+Inspired by RAG-Fusion \cite{raudaschl2023ragfusion}, multi-query retrieval mitigates single-query brittleness by issuing multiple reformulated queries. We prompt GPT-4.1-mini (temperature 0) to generate three semantically diverse query variants for each original query, retrieve the top-$k$ results for each variant independently using dense retrieval, and merge the four ranked lists (original plus three variants) via RRF ($k = 60$). This approach increases recall by covering alternative phrasings and aspects of the information need that a single query may not capture.
+
+\paragraph{Future Methods.}
+Several additional methods are planned for subsequent experiments: Contextual Retrieval \cite{anthropic2024contextual}, which prepends LLM-generated chunk summaries at indexing time; HyPE \cite{vake2025hype}, which precomputes hypothetical questions per document to transform retrieval into question--question matching; and ColBERTv2 \cite{santhanam2022colbertv2}, which employs late interaction with per-token representations. These methods will be added to our evaluation as experiments are completed.
 
 \subsection{Evaluation Metrics}
 \label{sec:metrics}
@@ -227,7 +246,17 @@ for multiple comparisons, reporting significance at $p < 0.05$.
 \subsection{Experimental Setup}
 \label{sec:setup}
 
-% TODO: Hardware, models, hyperparameters, reproducibility details
+\paragraph{Infrastructure.}
+All experiments are conducted in a two-tier setup. Sparse retrieval (BM25) and dense index construction and search (FAISS) run locally on an Apple Silicon Mac, which handles tokenization, scoring, and exact nearest-neighbor search over the 7{,}318-document corpus. All API-based inference---embedding generation, LLM-based query expansion, hypothetical document generation, and neural reranking---is served through Azure AI Foundry endpoints.
+
+\paragraph{Models and Rate Limits.}
+We use the following models via Azure AI: \texttt{text-embedding-3-large} (3{,}072 dimensions; 5M tokens per minute), GPT-4.1-mini for query expansion and HyDE generation (100M tokens per minute), and Cohere Rerank v4.0 Pro for cross-encoder reranking (300K tokens per minute). All embedding requests use the default parameters specified by the API. For generation-dependent retrieval methods (HyDE, Multi-Query), we set temperature $= 0$ to ensure deterministic outputs.
+
+\paragraph{Document Representation.}
+In our main experiments, we perform \emph{whole-document retrieval}: each of the 7{,}318 documents is indexed as a single unit without chunking. Documents average approximately 920 tokens in length, well within the context windows of all models used. This design choice isolates the effect of the retrieval method itself from chunk-size and segmentation confounds. Chunking-based ablations are reported separately in Section~\ref{sec:ablations}.
+
+\paragraph{Reproducibility.}
+We fix random seed $= 42$ for all stochastic components (BM25 tie-breaking, bootstrap resampling). LLM generation uses temperature $= 0$ to eliminate sampling variance. All retrieval method configurations, prompts, and evaluation scripts are versioned in our code repository. The T\textsuperscript{2}-RAGBench dataset \cite{strich2026t2ragbench} is used without modification, with the standard train/test split as specified by the original authors.
 
 % ============================================================
 \section{Results}
