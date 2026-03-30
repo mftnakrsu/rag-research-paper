@@ -15,37 +15,15 @@ chunking:
 
 embedding_models:
   openai_large:
-    provider: "openai"
+    provider: "azure"
     model: "text-embedding-3-large"
     dimensions: 3072
     batch_size: 100
-  openai_small:
-    provider: "openai"
-    model: "text-embedding-3-small"
-    dimensions: 1536
-    batch_size: 100
-  cohere:
-    provider: "cohere"
-    model: "embed-v4.0"
-    dimensions: 1024
-    input_type_query: "search_query"
-    input_type_doc: "search_document"
-    batch_size: 96
-  voyage:
-    provider: "voyage"
-    model: "voyage-3-large"
-    dimensions: 1024
-    batch_size: 128
-  bge_m3:
-    provider: "local"
-    model: "BAAI/bge-m3"
-    dimensions: 1024
-    batch_size: 32
 
 rerankers:
   cohere:
-    provider: "cohere"
-    model: "rerank-v3.5"
+    provider: "azure_cohere"
+    model: "Cohere-rerank-v4.0-pro"
     top_n: 10
   bge:
     provider: "local"

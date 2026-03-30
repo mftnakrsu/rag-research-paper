@@ -1,23 +1,30 @@
-"""Reranker implementations: Cohere API, BGE local, ColBERT, FlashRank."""
+"""Reranker implementations: Azure Cohere, local cross-encoder, FlashRank."""
 
 from __future__ import annotations
 
+import os
+
+import requests
+
 from src.retrieval.base import BaseReranker
-from src.utils.common import RetrievedDoc, Timer, get_logger
+from src.utils.common import RetrievedDoc, get_logger
 
 logger = get_logger(__name__)
 
 
-class CohereReranker(BaseReranker):
-    """Cohere Rerank API-based reranker."""
+class AzureCohereReranker(BaseReranker):
+    """Cohere Rerank via Azure AI Foundry serverless endpoint."""
 
     name = "cohere_rerank"
 
-    def __init__(self, model: str = "rerank-v3.5", top_n: int = 10):
-        import cohere
-        self.client = cohere.ClientV2()
+    def __init__(self, model: str = "Cohere-rerank-v4.0-pro", top_n: int = 10):
         self.model = model
         self.top_n = top_n
+        self.api_key = os.getenv("AZURE_API_KEY")
+        self.endpoint = (
+            f"{os.getenv('AZURE_LLM_ENDPOINT', 'https://aif-meftun-academic-work.services.ai.azure.com')}"
+            f"/providers/cohere/v2/rerank"
+        )
 
     def rerank(
         self, query: str, documents: list[RetrievedDoc], top_k: int = 5
@@ -25,24 +32,30 @@ class CohereReranker(BaseReranker):
         if not documents:
             return []
 
-        texts = [d.text for d in documents]
-        resp = self.client.rerank(
-            query=query,
-            documents=texts,
-            model=self.model,
-            top_n=min(top_k, len(documents)),
-        )
+        texts = [d.text[:4096] for d in documents]  # Cohere max 4096 chars per doc
+        body = {
+            "model": self.model,
+            "query": query,
+            "documents": texts,
+            "top_n": min(top_k, len(documents)),
+        }
+        headers = {"api-key": self.api_key, "Content-Type": "application/json"}
+
+        resp = requests.post(self.endpoint, headers=headers, json=body, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
 
         reranked = []
-        for rank, result in enumerate(resp.results):
-            orig = documents[result.index]
+        for rank, result in enumerate(data["results"]):
+            idx = result["index"]
+            orig = documents[idx]
             reranked.append(RetrievedDoc(
                 doc_id=orig.doc_id,
                 text=orig.text,
-                score=result.relevance_score,
+                score=result["relevance_score"],
                 rank=rank,
                 method=f"{orig.method}+cohere_rerank",
-                metadata={**orig.metadata, "rerank_score": result.relevance_score},
+                metadata={**orig.metadata, "rerank_score": result["relevance_score"]},
             ))
         return reranked
 
@@ -82,41 +95,6 @@ class LocalCrossEncoderReranker(BaseReranker):
         return reranked
 
 
-class FlashRankReranker(BaseReranker):
-    """Lightweight FlashRank reranker (CPU-friendly)."""
-
-    name = "flashrank"
-
-    def __init__(self, model_name: str = "ms-marco-MiniLM-L-12-v2"):
-        from flashrank import Ranker
-        self.ranker = Ranker(model_name=model_name)
-
-    def rerank(
-        self, query: str, documents: list[RetrievedDoc], top_k: int = 5
-    ) -> list[RetrievedDoc]:
-        if not documents:
-            return []
-
-        passages = [{"id": d.doc_id, "text": d.text} for d in documents]
-        results = self.ranker.rerank(
-            query=query, passages=passages, top_k=min(top_k, len(documents))
-        )
-
-        doc_map = {d.doc_id: d for d in documents}
-        reranked = []
-        for rank, r in enumerate(results):
-            orig = doc_map[r["id"]]
-            reranked.append(RetrievedDoc(
-                doc_id=orig.doc_id,
-                text=orig.text,
-                score=r["score"],
-                rank=rank,
-                method=f"{orig.method}+flashrank",
-                metadata={**orig.metadata, "rerank_score": r["score"]},
-            ))
-        return reranked
-
-
 class NoReranker(BaseReranker):
     """Pass-through (no reranking). Used as a baseline."""
 
@@ -133,11 +111,9 @@ def create_reranker(config: dict) -> BaseReranker:
     provider = config.get("provider", "none")
     if provider == "none":
         return NoReranker()
-    elif provider == "cohere":
-        return CohereReranker(config.get("model", "rerank-v3.5"), config.get("top_n", 10))
+    elif provider in ("cohere", "azure_cohere"):
+        return AzureCohereReranker(config.get("model", "Cohere-rerank-v4.0-pro"), config.get("top_n", 10))
     elif provider == "local":
         return LocalCrossEncoderReranker(config.get("model", "BAAI/bge-reranker-v2-m3"))
-    elif provider == "flashrank":
-        return FlashRankReranker(config.get("model", "ms-marco-MiniLM-L-12-v2"))
     else:
         raise ValueError(f"Unknown reranker provider: {provider}")

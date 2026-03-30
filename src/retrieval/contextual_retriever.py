@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from openai import OpenAI
+import os
+from openai import AzureOpenAI
 
 from src.retrieval.base import BaseEmbedder, BaseRetriever
 from src.retrieval.bm25_retriever import BM25Retriever
@@ -111,7 +112,11 @@ class ContextualRetriever(BaseRetriever):
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        self._client = OpenAI(**(openai_kwargs or {}))
+        self._client = AzureOpenAI(
+            api_key=os.getenv("AZURE_API_KEY"),
+            api_version=os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
+            azure_endpoint=os.getenv("AZURE_LLM_ENDPOINT"),
+        )
 
         # Build or reuse the hybrid retriever.
         if hybrid_retriever is not None:

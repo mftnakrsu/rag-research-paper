@@ -66,14 +66,20 @@ class BaseReranker(ABC):
         ...
 
 
-class OpenAIEmbedder(BaseEmbedder):
-    """OpenAI API-based embedder."""
+class AzureOpenAIEmbedder(BaseEmbedder):
+    """Azure OpenAI API-based embedder."""
 
     def __init__(self, model: str = "text-embedding-3-large", dimensions: int = 3072):
-        from openai import OpenAI
-        self.client = OpenAI()
+        import os
+        from openai import AzureOpenAI
+        self.client = AzureOpenAI(
+            api_key=os.getenv("AZURE_API_KEY"),
+            api_version=os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
+            azure_endpoint=os.getenv("AZURE_EMBED_ENDPOINT"),
+        )
         self.model = model
         self._dimension = dimensions
+        logger.info(f"AzureOpenAIEmbedder: {model}, dim={dimensions}")
 
     @property
     def dimension(self) -> int:
@@ -188,9 +194,9 @@ class LocalEmbedder(BaseEmbedder):
 
 def create_embedder(config: dict) -> BaseEmbedder:
     """Factory: create an embedder from config."""
-    provider = config["provider"]
-    if provider == "openai":
-        return OpenAIEmbedder(config["model"], config.get("dimensions", 3072))
+    provider = config.get("provider", "azure")
+    if provider in ("openai", "azure"):
+        return AzureOpenAIEmbedder(config["model"], config.get("dimensions", 3072))
     elif provider == "cohere":
         return CohereEmbedder(config["model"], config.get("dimensions", 1024))
     elif provider == "voyage":

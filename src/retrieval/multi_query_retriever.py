@@ -15,7 +15,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from openai import OpenAI
+import os
+from openai import AzureOpenAI
 
 from src.retrieval.base import BaseRetriever
 from src.utils.common import RetrievedDoc, Timer, get_logger
@@ -88,7 +89,11 @@ class MultiQueryRetriever(BaseRetriever):
         self.max_tokens = max_tokens
         self.include_original = include_original
 
-        self._client = OpenAI(**(openai_kwargs or {}))
+        self._client = AzureOpenAI(
+            api_key=os.getenv("AZURE_API_KEY"),
+            api_version=os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
+            azure_endpoint=os.getenv("AZURE_LLM_ENDPOINT"),
+        )
 
     # ------------------------------------------------------------------
     # Index construction (delegates to inner retriever)

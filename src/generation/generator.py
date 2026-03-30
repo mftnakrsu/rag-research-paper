@@ -28,8 +28,13 @@ class Generator:
         max_tokens: int = 256,
         prompt_template: str = DEFAULT_PROMPT,
     ):
-        from openai import OpenAI
-        self.client = OpenAI()
+        import os
+        from openai import AzureOpenAI
+        self.client = AzureOpenAI(
+            api_key=os.getenv("AZURE_API_KEY"),
+            api_version=os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
+            azure_endpoint=os.getenv("AZURE_LLM_ENDPOINT"),
+        )
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
