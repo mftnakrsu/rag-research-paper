@@ -231,7 +231,78 @@ for multiple comparisons, reporting significance at $p < 0.05$.
 \subsection{Main Retrieval Results}
 \label{sec:main_results}
 
-% TODO: Main comparison table
+Table~\ref{tab:main_results} presents the retrieval performance of all evaluated methods
+on the full T\textsuperscript{2}-RAGBench test set (23,088 queries over 7,318 documents).
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{R@20} & \textbf{MRR@3} & \textbf{nDCG@10} & \textbf{MAP} \\
+\midrule
+BM25                     & 0.293 & 0.552 & 0.644 & 0.735 & 0.797 & 0.411 & 0.515 & 0.449 \\
+Dense (text-embed-3-large) & 0.248 & 0.481 & 0.587 & 0.703 & 0.798 & 0.351 & 0.466 & 0.398 \\
+Hybrid (BM25+Dense, RRF)   & \textbf{0.308} & \textbf{0.588} & \textbf{0.695} & \textbf{0.801} & \textbf{0.877} & \textbf{0.433} & \textbf{0.551} & \textbf{0.477} \\
+% Hybrid + Cohere Rerank  & --- & --- & --- & --- & --- & --- & --- & --- \\  % TODO: add when ready
+% HyDE                    & --- & --- & --- & --- & --- & --- & --- & --- \\  % TODO
+% Multi-Query + RRF       & --- & --- & --- & --- & --- & --- & --- & --- \\  % TODO
+\bottomrule
+\end{tabular}
+\caption{Main retrieval results on T\textsuperscript{2}-RAGBench (23,088 queries).
+Hybrid RRF consistently outperforms both sparse and dense retrieval across all metrics.
+Best results per column in \textbf{bold}. Additional methods will be added as experiments complete.}
+\label{tab:main_results}
+\end{table*}
+
+Hybrid retrieval (BM25 + Dense with Reciprocal Rank Fusion) achieves the best performance
+across all metrics, with Recall@5 of 0.695 compared to 0.644 for BM25 and 0.587 for
+dense retrieval alone---a relative improvement of 7.9\% and 18.4\%, respectively.
+
+A notable finding is that BM25 outperforms dense retrieval (text-embedding-3-large)
+on all metrics except Recall@20, where they are nearly tied (0.797 vs.\ 0.798).
+This suggests that lexical matching is particularly effective for financial documents,
+where precise terminology (company names, metric labels, fiscal periods) provides
+strong retrieval signals that semantic embeddings may dilute.
+
+\paragraph{Per-Subset Analysis.}
+Table~\ref{tab:subset_results} breaks down performance by dataset subset.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llccc}
+\toprule
+\textbf{Subset} & \textbf{Method} & \textbf{R@5} & \textbf{R@10} & \textbf{MRR@3} \\
+\midrule
+\multirow{3}{*}{FinQA}
+  & BM25    & 0.729 & 0.834 & 0.389 \\
+  & Dense   & 0.611 & 0.748 & 0.308 \\
+  & Hybrid  & \textbf{0.737} & \textbf{0.856} & \textbf{0.389} \\
+\midrule
+\multirow{3}{*}{ConvFinQA}
+  & BM25    & 0.696 & 0.781 & 0.500 \\
+  & Dense   & 0.654 & 0.781 & 0.410 \\
+  & Hybrid  & \textbf{0.755} & \textbf{0.851} & \textbf{0.519} \\
+\midrule
+\multirow{3}{*}{TAT-DQA}
+  & BM25    & 0.566 & 0.649 & 0.400 \\
+  & Dense   & 0.549 & 0.647 & 0.364 \\
+  & Hybrid  & \textbf{0.647} & \textbf{0.746} & \textbf{0.438} \\
+\bottomrule
+\end{tabular}
+\caption{Per-subset retrieval results. TAT-DQA is the most challenging subset
+across all methods. Hybrid RRF provides the largest improvement on TAT-DQA
+(+8.1pp Recall@5 over BM25).}
+\label{tab:subset_results}
+\end{table}
+
+TAT-DQA emerges as the most challenging subset across all methods (Recall@5: 0.647
+for the best method vs.\ 0.755 for ConvFinQA), likely due to its emphasis on
+diverse numerical operations over complex table layouts.
+Hybrid fusion provides the largest absolute improvement on TAT-DQA (+8.1 percentage
+points Recall@5 over BM25), suggesting that combining lexical and semantic signals
+is especially valuable for table-heavy questions.
 
 \subsection{End-to-End Generation Results}
 \label{sec:generation}
