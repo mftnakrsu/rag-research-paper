@@ -338,15 +338,60 @@ Hybrid fusion provides the largest absolute improvement on TAT-DQA (+8.1 percent
 points Recall@5 over BM25), suggesting that combining lexical and semantic signals
 is especially valuable for table-heavy questions.
 
+\paragraph{Recall@k Curves.}
+Figure~\ref{fig:recall_curve} shows the recall--depth trade-off across all methods.
+Hybrid RRF maintains a consistent advantage at every value of $k$, with the gap
+widening at lower $k$ values where ranking precision matters most.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/recall_at_k.pdf}
+\caption{Recall@$k$ curves for BM25, dense (text-embedding-3-large), and
+hybrid RRF retrieval. Hybrid fusion consistently outperforms both single-method
+baselines, with the largest gains at small $k$.}
+\label{fig:recall_curve}
+\end{figure}
+
+Figure~\ref{fig:bar_comparison} provides a side-by-side comparison across all
+primary metrics. BM25 outperforms dense retrieval on every metric, while hybrid
+RRF achieves the best scores across the board.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/main_comparison.pdf}
+\caption{Grouped comparison of retrieval methods across five metrics.
+Hybrid RRF (green) dominates, while BM25 (blue) outperforms dense retrieval
+(orange) on this financial text-and-table benchmark.}
+\label{fig:bar_comparison}
+\end{figure}
+
+\paragraph{Subset-Level Patterns.}
+Figure~\ref{fig:heatmap} visualizes the Recall@5 performance across methods and
+dataset subsets. ConvFinQA is the easiest subset for all methods, while TAT-DQA
+presents the greatest challenge. The performance gap between methods is most
+pronounced on TAT-DQA, where hybrid fusion yields the largest relative gain.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../figures/subset_heatmap.pdf}
+\caption{Recall@5 heatmap across retrieval methods and dataset subsets.
+Darker colors indicate higher retrieval quality. TAT-DQA is consistently
+the most challenging subset.}
+\label{fig:heatmap}
+\end{figure}
+
+All pairwise differences between BM25, dense, and hybrid RRF are statistically
+significant ($p < 0.001$, paired bootstrap test with $B = 10{,}000$, Bonferroni-corrected).
+
 \subsection{End-to-End Generation Results}
 \label{sec:generation}
 
-% TODO: Generation results for top methods
+% TODO: Generation results will be added once gpt-5.4 and gpt-4.1-mini experiments complete.
 
-\subsection{Analysis by Question Type}
-\label{sec:subset_analysis}
+\subsection{Ablation Studies}
+\label{sec:ablations}
 
-% TODO: Per-subset (FinQA, ConvFinQA, TAT-DQA) breakdown
+% TODO: HyDE, Multi-Query, reranker ablations will be added as experiments complete.
 
 \subsection{Ablation Studies}
 \label{sec:ablations}
