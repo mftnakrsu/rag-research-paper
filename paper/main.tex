@@ -401,32 +401,94 @@ significant ($p < 0.001$, paired bootstrap test with $B = 10{,}000$, Bonferroni-
 \subsection{Ablation Studies}
 \label{sec:ablations}
 
-% TODO: HyDE, Multi-Query, reranker ablations will be added as experiments complete.
-
-\subsection{Ablation Studies}
-\label{sec:ablations}
-
-% TODO: Embedding model, chunk size, reranker, fusion method ablations
-
-\subsection{Error Analysis}
-\label{sec:errors}
-
-% TODO: Failure mode categorization
+% TODO: Fusion method ablation (CC vs RRF), Multi-Query results, reranker depth — pending experiments.
 
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO: Key findings, practical recommendations, cost-accuracy trade-offs
+Our results reveal several actionable insights for practitioners building RAG systems
+over heterogeneous financial documents.
+
+\paragraph{Reranking is the single most impactful component.}
+Adding a cross-encoder reranker (Cohere Rerank v4.0 Pro) to hybrid retrieval yields
+the largest improvement in our study: +17.2 percentage points MRR@3 and +12.1pp Recall@5
+over unreranked hybrid retrieval. This two-stage pipeline (broad recall via hybrid fusion,
+then precise reranking) is the clear recommended architecture for production RAG on
+text-and-table documents. The cost of the reranking stage is modest: at 300K tokens per
+minute, the Cohere endpoint processes the full 23K-query benchmark in approximately
+one hour.
+
+\paragraph{Hybrid fusion consistently outperforms single-method retrieval.}
+Combining BM25 and dense retrieval via Reciprocal Rank Fusion improves over both
+constituent methods across all metrics and all dataset subsets. The improvement is
+largest on TAT-DQA (+8.1pp Recall@5 over BM25), where diverse numerical operations
+benefit from both lexical precision and semantic understanding. We recommend hybrid
+retrieval as the minimum viable baseline for any RAG deployment.
+
+\paragraph{BM25 remains surprisingly strong for financial documents.}
+On every metric except Recall@20, BM25 outperforms dense retrieval with
+text-embedding-3-large---one of the strongest commercial embedding models available
+in 2026. Financial documents contain precise, domain-specific terminology (company
+names, ticker symbols, standardized metric labels) that lexical matching captures
+effectively. This finding challenges the common assumption that dense retrieval
+universally dominates sparse methods and underscores the importance of domain-specific
+evaluation.
+
+\paragraph{HyDE is counterproductive for numerical financial QA.}
+Hypothetical Document Embeddings consistently underperform vanilla dense retrieval
+on T\textsuperscript{2}-RAGBench, confirming the findings of \citet{strich2026t2ragbench}.
+We attribute this to the nature of financial questions: they require precise numerical
+values that LLMs cannot reliably hallucinate. The generated pseudo-documents introduce
+noise by fabricating plausible but incorrect financial figures, pulling the query
+embedding away from the true relevant context. Practitioners should avoid HyDE for
+domains where factual precision dominates over semantic similarity.
+
+\paragraph{Practical recommendations.}
+Based on our findings, we propose the following decision framework for RAG retrieval
+on text-and-table documents:
+\begin{enumerate}
+    \item \textbf{Start with hybrid retrieval} (BM25 + dense, RRF fusion) as the baseline.
+    \item \textbf{Add a cross-encoder reranker} for maximum quality---this provides the
+          largest single improvement.
+    \item \textbf{Avoid HyDE} for domains with precise numerical or entity-centric queries.
+    \item \textbf{Evaluate on domain-specific data}---MTEB/BEIR rankings do not predict
+          financial retrieval performance.
+\end{enumerate}
 
 \paragraph{Limitations.}
-% TODO: Honest limitations
+Our study has several limitations. First, T\textsuperscript{2}-RAGBench covers only
+financial documents; our findings may not generalize to other domains with different
+text-table distributions (e.g., scientific papers, medical records). Second, all answers
+in the benchmark are numerical, which biases evaluation toward Number Match and limits
+our ability to assess generation quality for free-form answers. Third, we perform
+whole-document retrieval (average 920 tokens) rather than passage-level chunking;
+performance patterns may differ for chunked corpora. Fourth, our study uses a single
+embedding model (text-embedding-3-large) for the main experiments; comparing multiple
+embedding models remains important future work.  Finally, API-based models introduce
+a dependency on external services whose behavior may change over time, potentially
+affecting reproducibility.
 
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
-% TODO: Summary and future work
+We presented a comprehensive benchmark of RAG retrieval methods on
+T\textsuperscript{2}-RAGBench, evaluating five retrieval strategies across 23,088
+financial queries over 7,318 documents containing both text and tables. Our key finding
+is that a two-stage pipeline of hybrid retrieval (BM25 + dense with RRF) followed by
+neural cross-encoder reranking achieves the best performance, with Recall@5 of 0.816
+and MRR@3 of 0.605---substantially outperforming all single-stage methods.
+
+We further demonstrate that BM25 outperforms state-of-the-art dense retrieval on
+financial documents, that HyDE is counterproductive for numerical QA, and that all
+pairwise method differences are statistically significant ($p < 0.001$). These findings
+provide concrete, actionable guidance for practitioners building RAG systems for
+heterogeneous documents.
+
+Future work includes evaluating additional methods (contextual retrieval, ColBERT,
+RAPTOR), conducting chunking ablations, testing multiple embedding models, and
+extending the benchmark to non-financial domains to assess generalizability.
 
 % ============================================================
 \section*{Acknowledgments}
