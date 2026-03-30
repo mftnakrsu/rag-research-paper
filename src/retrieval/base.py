@@ -164,20 +164,26 @@ class VoyageEmbedder(BaseEmbedder):
 class LocalEmbedder(BaseEmbedder):
     """Local sentence-transformers embedder (BGE-M3, E5, etc.)."""
 
-    def __init__(self, model_name: str = "BAAI/bge-m3"):
+    def __init__(self, model_name: str = "BAAI/bge-m3", max_seq_length: int = 1024):
         from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(model_name)
+        self.model.max_seq_length = max_seq_length
         self._dimension = self.model.get_sentence_embedding_dimension()
+        logger.info(f"LocalEmbedder: {model_name}, dim={self._dimension}, max_seq={max_seq_length}")
 
     @property
     def dimension(self) -> int:
         return self._dimension
 
     def embed_documents(self, texts: list[str]) -> np.ndarray:
-        return self.model.encode(texts, show_progress_bar=True, normalize_embeddings=True)
+        return self.model.encode(
+            texts, show_progress_bar=True, normalize_embeddings=True, batch_size=8
+        )
 
     def embed_queries(self, queries: list[str]) -> np.ndarray:
-        return self.model.encode(queries, show_progress_bar=True, normalize_embeddings=True)
+        return self.model.encode(
+            queries, show_progress_bar=True, normalize_embeddings=True, batch_size=32
+        )
 
 
 def create_embedder(config: dict) -> BaseEmbedder:
