@@ -37,8 +37,18 @@ def extract_number(text: str) -> float | None:
     return None
 
 
+def _relative_close(a: float, b: float, epsilon: float = 1e-2) -> bool:
+    """Check if two numbers are within relative tolerance."""
+    if b == 0:
+        return abs(a) < epsilon
+    return abs(a - b) / abs(b) < epsilon
+
+
 def number_match(prediction: str, gold: str, epsilon: float = 1e-2) -> float:
-    """Number Match metric from T²-RAGBench (relative tolerance).
+    """Number Match metric from T²-RAGBench (relative tolerance, scale-invariant).
+
+    Handles percentage/decimal mismatches: e.g., pred=53 vs gold=0.53 (53%)
+    by testing multiple scale factors {1, 100, 0.01}.
 
     Returns 1.0 if numbers match within relative tolerance, 0.0 otherwise.
     """
@@ -48,11 +58,18 @@ def number_match(prediction: str, gold: str, epsilon: float = 1e-2) -> float:
     if pred_num is None or gold_num is None:
         return 0.0
 
-    if gold_num == 0:
-        return 1.0 if abs(pred_num) < epsilon else 0.0
+    # Direct comparison
+    if _relative_close(pred_num, gold_num, epsilon):
+        return 1.0
 
-    relative_diff = abs(pred_num - gold_num) / abs(gold_num)
-    return 1.0 if relative_diff < epsilon else 0.0
+    # Scale-invariant: try ×100 and ÷100 for percentage/decimal mismatch
+    for scale in [100.0, 0.01]:
+        if _relative_close(pred_num * scale, gold_num, epsilon):
+            return 1.0
+        if _relative_close(pred_num, gold_num * scale, epsilon):
+            return 1.0
+
+    return 0.0
 
 
 def exact_match(prediction: str, gold: str) -> float:
