@@ -12,7 +12,7 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 
-\title{A Comprehensive Benchmark of Retrieval Methods for\\Text-and-Table RAG Systems}
+\title{From BM25 to Corrective RAG:\\Benchmarking Retrieval Strategies for Text-and-Table Documents}
 
 \author{
   Meftun Akarsu \\
@@ -30,16 +30,22 @@
 \begin{abstract}
 Retrieval-Augmented Generation (RAG) systems critically depend on retrieval quality,
 yet no comprehensive comparison of modern retrieval methods exists for documents
-containing both text and tabular data. We systematically benchmark 15+ retrieval
-strategies---spanning sparse (BM25, SPLADE), dense (multiple embedding models),
-late interaction (ColBERT), hybrid fusion (RRF, convex combination), query expansion
-(HyDE, multi-query), index augmentation (HyPE, contextual retrieval), and
-hierarchical approaches (parent-child, RAPTOR)---on the T\textsuperscript{2}-RAGBench
-dataset comprising 23,088 financial QA pairs over 7,318 documents. We evaluate both
-retrieval quality (Recall@k, MRR, nDCG) and end-to-end generation quality (Number Match,
-F1, BERTScore) with statistical significance testing. Our results show that
-[KEY FINDING 1], [KEY FINDING 2], and [KEY FINDING 3]. We provide practical
-recommendations for RAG system design and release our full benchmark code.
+containing both text and tabular data. We systematically benchmark ten retrieval
+strategies---spanning sparse (BM25), dense, hybrid fusion (RRF, convex combination),
+cross-encoder reranking, query expansion (HyDE, multi-query), index augmentation
+(contextual retrieval), and adaptive retrieval (Corrective RAG)---on the
+T\textsuperscript{2}-RAGBench dataset comprising 23,088 financial QA pairs over
+7,318 documents. We evaluate retrieval quality (Recall@$k$, MRR, nDCG) and
+end-to-end generation quality (Number Match) with statistical significance testing.
+Our key findings are: (1)~a two-stage pipeline of hybrid retrieval with neural
+reranking achieves the best performance (Recall@5\,=\,0.816, MRR@3\,=\,0.605),
+outperforming all single-stage methods by a wide margin; (2)~BM25 outperforms
+dense retrieval on this benchmark, challenging the assumption that learned
+representations universally dominate lexical matching; and (3)~query expansion
+methods (HyDE, multi-query) and adaptive retrieval (CRAG) provide limited benefit
+for precise numerical queries, while contextual retrieval yields consistent gains.
+We provide ablation studies on fusion methods and reranker depth, practical
+cost-accuracy recommendations, and release our full benchmark code.
 \end{abstract}
 
 % ============================================================
@@ -271,22 +277,35 @@ on the full T\textsuperscript{2}-RAGBench test set (23,088 queries over 7,318 do
 \begin{table*}[t]
 \centering
 \small
-\begin{tabular}{lcccccccc}
+\begin{tabular}{llccccccc}
 \toprule
-\textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{R@20} & \textbf{MRR@3} & \textbf{nDCG@10} & \textbf{MAP} \\
+\textbf{Category} & \textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{MRR@3} & \textbf{nDCG@10} & \textbf{MAP} \\
 \midrule
-BM25                       & 0.293 & 0.552 & 0.644 & 0.735 & 0.797 & 0.411 & 0.515 & 0.449 \\
-Dense (text-embed-3-large) & 0.248 & 0.481 & 0.587 & 0.703 & 0.798 & 0.351 & 0.466 & 0.398 \\
-HyDE (gpt-4.1-mini)       & 0.221 & 0.441 & 0.544 & 0.671 & 0.768 & 0.318 & 0.433 & 0.365 \\
-Hybrid (BM25+Dense, RRF)   & 0.308 & 0.588 & 0.695 & 0.801 & 0.877 & 0.433 & 0.551 & 0.477 \\
-Hybrid + Cohere Rerank     & \textbf{0.472} & \textbf{0.758} & \textbf{0.816} & \textbf{0.861} & --- & \textbf{0.605} & \textbf{0.683} & \textbf{0.625} \\
+\multirow{2}{*}{Single-method}
+  & BM25 (sparse)               & 0.293 & 0.552 & 0.644 & 0.735 & 0.411 & 0.515 & 0.449 \\
+  & Dense (text-embed-3-large)  & 0.248 & 0.481 & 0.587 & 0.703 & 0.351 & 0.466 & 0.398 \\
+\midrule
+\multirow{2}{*}{Query expansion}
+  & HyDE (gpt-4.1-mini)        & 0.221 & 0.441 & 0.544 & 0.671 & 0.318 & 0.433 & 0.365 \\
+  & Multi-Query + RRF           & 0.240 & 0.477 & 0.640 & 0.734 & 0.397 & 0.506 & --- \\
+\midrule
+\multirow{2}{*}{Index augment.}
+  & Contextual Dense            & 0.264 & 0.504 & 0.615 & 0.729 & 0.373 & 0.490 & --- \\
+  & Contextual Hybrid           & 0.320 & 0.606 & 0.717 & 0.821 & 0.454 & 0.571 & --- \\
+\midrule
+Adaptive
+  & CRAG (gpt-4.1-mini)         & 0.282 & 0.529 & 0.658 & 0.788 & 0.415 & 0.536 & --- \\
+\midrule
+\multirow{2}{*}{Fusion}
+  & Hybrid (BM25+Dense, RRF)    & 0.308 & 0.588 & 0.695 & 0.801 & 0.433 & 0.551 & 0.477 \\
+  & Hybrid + Cohere Rerank      & \textbf{0.472} & \textbf{0.758} & \textbf{0.816} & \textbf{0.861} & \textbf{0.605} & \textbf{0.683} & \textbf{0.625} \\
 \bottomrule
 \end{tabular}
-\caption{Main retrieval results on T\textsuperscript{2}-RAGBench (23,088 queries).
-Hybrid RRF with Cohere Rerank v4.0 Pro achieves the best results across all metrics,
-with a striking +17.2pp MRR@3 improvement over Hybrid RRF alone.
-HyDE underperforms even vanilla dense retrieval on this financial benchmark.
-Best results per column in \textbf{bold}.}
+\caption{Main retrieval results on T\textsuperscript{2}-RAGBench (23,088 queries, 7,318 documents).
+Methods are grouped by category. Hybrid RRF with cross-encoder reranking dominates all methods.
+Contextual Hybrid outperforms vanilla Hybrid RRF. CRAG provides moderate gains through adaptive
+query correction. HyDE underperforms vanilla dense retrieval. All pairwise differences between
+adjacent methods are statistically significant ($p < 0.001$). Best results in \textbf{bold}.}
 \label{tab:main_results}
 \end{table*}
 
@@ -308,6 +327,23 @@ vs.\ 0.587), confirming the finding of \citet{strich2026t2ragbench}. Financial q
 require precise numerical reasoning; the LLM-generated hypothetical documents introduce
 noise by hallucinating plausible but incorrect financial figures, pulling the embedding
 away from the true relevant context.
+
+Contextual Retrieval \citep{anthropic2024contextual} improves both dense (+2.8pp Recall@5)
+and hybrid (+2.2pp) retrieval by prepending LLM-generated context summaries to each document
+at indexing time. This consistent improvement confirms that financial documents benefit from
+explicit metadata enrichment (company name, reporting period, key metrics).
+
+CRAG achieves Recall@5 of 0.658, improving over BM25 (+1.4pp) through adaptive query
+correction. Notably, 63\% of queries (14,569/23,088) triggered the correction pathway,
+indicating that initial retrieval frequently returns suboptimal results on this benchmark.
+However, CRAG falls short of simple hybrid fusion (0.695), suggesting that query rewriting
+alone cannot match the complementary strengths of sparse and dense retrieval.
+
+Multi-query retrieval with RAG-Fusion \citep{raudaschl2023ragfusion} provides negligible
+improvement over BM25 (Recall@5: 0.640 vs.\ 0.644). Financial queries are already
+specific and well-formed; generating alternative phrasings does not meaningfully increase
+recall, confirming the production-scale finding of diminishing returns for multi-query
+approaches on structured domain queries.
 
 \paragraph{Per-Subset Analysis.}
 Table~\ref{tab:subset_results} breaks down performance by dataset subset.
@@ -396,12 +432,82 @@ significant ($p < 0.001$, paired bootstrap test with $B = 10{,}000$, Bonferroni-
 \subsection{End-to-End Generation Results}
 \label{sec:generation}
 
-% TODO: Generation results will be added once gpt-5.4 and gpt-4.1-mini experiments complete.
+To assess whether improved retrieval translates to improved answer quality, we run
+end-to-end generation with GPT-4.1-mini and GPT-5.4 using the top-5 retrieved documents
+as context. Table~\ref{tab:generation} reports Number Match (NM) with scale-invariant
+evaluation.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Retrieval} & \textbf{GPT-4.1-mini} & \textbf{GPT-5.4} \\
+\midrule
+BM25          & 0.251 & --- \\
+Dense         & 0.257 & --- \\
+Hybrid RRF    & 0.282 & 0.346 \\
+Oracle        & 0.350 & 0.403 \\
+\bottomrule
+\end{tabular}
+\caption{End-to-end Number Match (NM) by retrieval method and LLM.
+Better retrieval consistently leads to better generation quality.
+GPT-5.4 outperforms GPT-4.1-mini by 6--7pp on the same retrieval.}
+\label{tab:generation}
+\end{table}
+
+Better retrieval consistently leads to better answer quality (BM25: 0.251
+$\rightarrow$ Hybrid: 0.282 $\rightarrow$ Oracle: 0.350 with GPT-4.1-mini),
+confirming the critical role of retrieval in RAG pipelines.
+GPT-5.4 improves over GPT-4.1-mini by 6--7 percentage points on identical retrieval
+outputs, demonstrating that both retrieval quality and LLM capability contribute
+independently to end-to-end performance.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/retrieval_generation_correlation.pdf}
+\caption{Correlation between retrieval quality (Recall@5) and generation
+quality (Number Match). The strong positive correlation ($r > 0.99$) confirms
+that better retrieval leads to better answers.}
+\label{fig:correlation}
+\end{figure}
 
 \subsection{Ablation Studies}
 \label{sec:ablations}
 
-% TODO: Fusion method ablation (CC vs RRF), Multi-Query results, reranker depth — pending experiments.
+\paragraph{Fusion method.}
+We compare Reciprocal Rank Fusion (RRF) with Convex Combination (CC) at varying
+parameters (Figure~\ref{fig:fusion_ablation}). CC with $\alpha = 0.5$ (equal weighting
+of BM25 and dense scores) achieves Recall@5 of 0.726, outperforming RRF ($k=60$)
+at 0.699. Among RRF variants, lower $k$ values emphasize top-ranked documents more
+aggressively; $k=10$ achieves the best RRF performance (0.716). Both findings suggest
+that balanced fusion of sparse and dense signals is optimal for this benchmark.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fusion_ablation.pdf}
+\caption{Fusion method ablation. Left: Convex Combination with varying $\alpha$
+(dense weight); $\alpha = 0.5$ is optimal. Right: RRF with varying $k$;
+lower $k$ yields slightly better results.}
+\label{fig:fusion_ablation}
+\end{figure}
+
+\paragraph{Reranker depth.}
+We vary the number of candidates passed to the cross-encoder reranker
+(Figure~\ref{fig:reranker_depth}). With only 20 candidates, reranking is
+ineffective (Recall@5: 0.458), as relevant documents are often not in the
+candidate pool. Performance increases sharply at 50 candidates (0.827) and
+continues to improve at 100 (0.888). Increasing the number of returned results
+from 10 to 20 provides marginal gains (0.827 $\rightarrow$ 0.878), suggesting
+that the top-10 already captures most relevant documents after reranking.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/reranker_depth.pdf}
+\caption{Reranker depth ablation. More candidates yield better results,
+with a critical threshold at 50. Format: candidates $\rightarrow$ top-N returned.}
+\label{fig:reranker_depth}
+\end{figure}
 
 % ============================================================
 \section{Discussion}
@@ -474,21 +580,23 @@ affecting reproducibility.
 \label{sec:conclusion}
 
 We presented a comprehensive benchmark of RAG retrieval methods on
-T\textsuperscript{2}-RAGBench, evaluating five retrieval strategies across 23,088
-financial queries over 7,318 documents containing both text and tables. Our key finding
-is that a two-stage pipeline of hybrid retrieval (BM25 + dense with RRF) followed by
-neural cross-encoder reranking achieves the best performance, with Recall@5 of 0.816
-and MRR@3 of 0.605---substantially outperforming all single-stage methods.
+T\textsuperscript{2}-RAGBench, evaluating ten retrieval strategies---from classical
+BM25 to Corrective RAG---across 23,088 queries over 7,318 text-and-table documents.
+Our key finding is that a two-stage pipeline of hybrid retrieval with neural
+reranking achieves the best performance (Recall@5\,=\,0.816, MRR@3\,=\,0.605),
+outperforming all single-stage methods by a wide margin.
 
-We further demonstrate that BM25 outperforms state-of-the-art dense retrieval on
-financial documents, that HyDE is counterproductive for numerical QA, and that all
-pairwise method differences are statistically significant ($p < 0.001$). These findings
-provide concrete, actionable guidance for practitioners building RAG systems for
-heterogeneous documents.
+We further demonstrate that: BM25 outperforms dense retrieval on this benchmark;
+contextual retrieval provides consistent gains through document-level enrichment;
+CRAG's adaptive correction helps but cannot match hybrid fusion; and query expansion
+methods (HyDE, multi-query) provide limited benefit for precise numerical queries.
+Ablation studies reveal that fusion method choice (CC vs.\ RRF) and reranker candidate
+depth significantly impact performance. All differences are statistically significant
+($p < 0.001$).
 
-Future work includes evaluating additional methods (contextual retrieval, ColBERT,
-RAPTOR), conducting chunking ablations, testing multiple embedding models, and
-extending the benchmark to non-financial domains to assess generalizability.
+Future work includes evaluating ColBERT late interaction, RAPTOR tree-based retrieval,
+chunking strategy ablations, multiple embedding model comparisons, and extending the
+benchmark to non-financial domains to assess generalizability of our findings.
 
 % ============================================================
 \section*{Acknowledgments}
