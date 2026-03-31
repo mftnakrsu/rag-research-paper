@@ -611,10 +611,293 @@ that made the large-scale experiments in this work possible.
 \section{Hyperparameter Details}
 \label{app:hyperparams}
 
+Table~\ref{tab:hyperparams} lists all hyperparameters used in each retrieval method.
+Unless otherwise noted, parameters follow the values in our configuration file
+(\texttt{configs/default.yaml}) and were held constant across all experiments.
+
+\begin{table*}[ht]
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Method} & \textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
+\midrule
+\multirow{3}{*}{BM25}
+  & $k_1$            & 1.2   & Term-frequency saturation \\
+  & $b$              & 0.75  & Document-length normalization \\
+  & Tokenizer        & whitespace split & Via \texttt{rank\_bm25} library \\
+\midrule
+\multirow{3}{*}{Dense Retrieval}
+  & Embedding model  & \texttt{text-embedding-3-large} & OpenAI via Azure AI Foundry \\
+  & Dimensions       & 3{,}072 & Full dimensionality, no reduction \\
+  & Index type       & FAISS \texttt{IndexFlatIP} & Exact inner-product (cosine) search \\
+\midrule
+\multirow{3}{*}{Hybrid RRF}
+  & RRF $k$          & 60    & Default smoothing constant \\
+  & RRF $k$ (ablation) & 10, 30, 100 & Tested in fusion ablation (\S\ref{sec:ablations}) \\
+  & BM25 / Dense weights & 0.5 / 0.5 & Equal contribution from both retrievers \\
+\midrule
+\multirow{2}{*}{Hybrid CC}
+  & $\alpha$ (dense weight) & 0.5 & Optimal in ablation \\
+  & $\alpha$ (ablation)     & 0.3, 0.7, 0.9 & Tested in fusion ablation (\S\ref{sec:ablations}) \\
+\midrule
+\multirow{3}{*}{Cohere Rerank}
+  & Model            & \texttt{Cohere-rerank-v4.0-pro} & Azure AI Foundry endpoint \\
+  & top\_n returned  & 10    & Documents returned after reranking \\
+  & Candidate pool   & 50    & Documents passed to reranker from first stage \\
+\midrule
+\multirow{4}{*}{HyDE}
+  & LLM              & \texttt{gpt-4.1-mini} & Hypothetical document generation \\
+  & Temperature      & 0.7   & Default in retriever; 0 used in main experiments \\
+  & Max tokens       & 150   & Per hypothetical passage \\
+  & Num.\ generations & 1    & Single hypothetical document per query \\
+\midrule
+\multirow{4}{*}{Multi-Query}
+  & LLM              & \texttt{gpt-4.1-mini} & Query variant generation \\
+  & Num.\ variants   & 3     & Plus original query $= 4$ total retrievals \\
+  & Temperature      & 0.7   & Default in retriever; 0 used in main experiments \\
+  & RRF $k$ (fusion) & 60    & For merging variant result lists \\
+\midrule
+\multirow{4}{*}{CRAG}
+  & LLM (evaluation) & \texttt{gpt-4.1-mini} & Relevance classification \\
+  & Eval.\ temperature & 0.0 & Deterministic relevance judgments \\
+  & LLM (rewriting)  & \texttt{gpt-4.1-mini} & Query correction / rewriting \\
+  & Rewrite temperature & 0.5 & Moderate diversity in rewrites \\
+\midrule
+\multirow{3}{*}{Contextual Retrieval}
+  & LLM              & \texttt{gpt-4.1-mini} & Context summary generation \\
+  & Temperature      & 0.0   & Deterministic context summaries \\
+  & Max tokens       & 100   & Per context prefix \\
+\midrule
+\multirow{4}{*}{Global}
+  & Random seed      & 42    & All stochastic components \\
+  & Top-$k$ values   & 1, 3, 5, 10, 20 & Evaluated across all methods \\
+  & Bootstrap $B$    & 10{,}000 & Significance testing \\
+  & Significance     & $p < 0.05$ & Bonferroni-corrected \\
+\bottomrule
+\end{tabular}
+\caption{Complete hyperparameter settings for all retrieval methods.
+All LLM calls use \texttt{gpt-4.1-mini} via Azure AI Foundry.
+Embedding uses \texttt{text-embedding-3-large} (3{,}072 dimensions) for all dense components.}
+\label{tab:hyperparams}
+\end{table*}
+
+% ============================================================
+
 \section{Full Results Tables}
 \label{app:full_results}
 
+Table~\ref{tab:full_results} presents the complete set of retrieval metrics for all evaluated
+methods. Values are taken from the main experiments (Table~\ref{tab:main_results}); entries
+marked with --- were not computed for that method--metric combination.
+
+\begin{table*}[ht]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lccccccccccc}
+\toprule
+\textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{R@20} & \textbf{MRR@3} & \textbf{MRR@5} & \textbf{nDCG@5} & \textbf{nDCG@10} & \textbf{MAP} \\
+\midrule
+HyDE
+  & 0.221 & 0.441 & 0.544 & 0.671 & ---   & 0.318 & ---   & ---   & 0.433 & 0.365 \\
+Dense
+  & 0.248 & 0.481 & 0.587 & 0.703 & ---   & 0.351 & ---   & ---   & 0.466 & 0.398 \\
+Contextual Dense
+  & 0.264 & 0.504 & 0.615 & 0.729 & ---   & 0.373 & ---   & ---   & 0.490 & ---   \\
+Multi-Query
+  & 0.240 & 0.477 & 0.640 & 0.734 & ---   & 0.397 & ---   & ---   & 0.506 & ---   \\
+BM25
+  & 0.293 & 0.552 & 0.644 & 0.735 & ---   & 0.411 & ---   & ---   & 0.515 & 0.449 \\
+CRAG
+  & 0.282 & 0.529 & 0.658 & 0.788 & ---   & 0.415 & ---   & ---   & 0.536 & ---   \\
+Hybrid RRF
+  & 0.308 & 0.588 & 0.695 & 0.801 & ---   & 0.433 & ---   & ---   & 0.551 & 0.477 \\
+Contextual Hybrid
+  & 0.320 & 0.606 & 0.717 & 0.821 & ---   & 0.454 & ---   & ---   & 0.571 & ---   \\
+Hybrid + Rerank
+  & \textbf{0.472} & \textbf{0.758} & \textbf{0.816} & \textbf{0.861} & ---   & \textbf{0.605} & ---   & ---   & \textbf{0.683} & \textbf{0.625} \\
+\bottomrule
+\end{tabular}
+\caption{Full retrieval results for all methods and metrics on T\textsuperscript{2}-RAGBench
+(23,088 queries, 7,318 documents). Methods are sorted by nDCG@10 in ascending order.
+Best results in \textbf{bold}. Entries marked --- indicate metrics that were not computed
+for the given method in our experiments.}
+\label{tab:full_results}
+\end{table*}
+
+% ============================================================
+
 \section{Prompt Templates}
 \label{app:prompts}
+
+This appendix documents the exact prompt templates used in all LLM-dependent retrieval
+methods and the generation stage. All prompts use \texttt{gpt-4.1-mini} via Azure AI Foundry.
+
+\subsection*{C.1\quad Generation Prompt (Answer Extraction)}
+
+Used to extract the final answer from retrieved context during end-to-end evaluation.
+
+\begin{small}
+\begin{verbatim}
+Answer the following question based ONLY on the
+provided context.
+If the answer is a number, provide just the number.
+If you cannot answer from the context, say
+"UNANSWERABLE".
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:
+\end{verbatim}
+\end{small}
+
+\subsection*{C.2\quad HyDE Prompt (Hypothetical Document Generation)}
+
+Used to generate a hypothetical answer passage whose embedding replaces the query embedding
+for dense retrieval.
+
+\begin{small}
+\begin{verbatim}
+Given the following question about financial data,
+write a short passage that would contain the answer.
+Include specific numbers and financial terms.
+Question: {query}
+Passage:
+\end{verbatim}
+\end{small}
+
+\noindent\textit{Fallback prompt} (used when the config template is not provided):
+
+\begin{small}
+\begin{verbatim}
+Please write a short passage that directly answers
+the following question. The passage should be factual,
+detailed, and roughly the length of a typical
+encyclopedia paragraph.
+
+Question: {query}
+
+Passage:
+\end{verbatim}
+\end{small}
+
+\subsection*{C.3\quad Multi-Query Prompt (Query Variant Generation)}
+
+Used to generate semantically diverse reformulations of the original query.
+The original query plus all variants are retrieved independently and merged via RRF.
+
+\begin{small}
+\begin{verbatim}
+You are a helpful assistant that generates alternative
+search queries. Given the following question, generate
+{n} alternative phrasings that capture the same
+information need but use different wording or
+perspectives. Return each query on its own line,
+numbered (e.g. 1. ... 2. ...). Do not include any
+other text.
+
+Original question: {query}
+
+Alternative queries:
+\end{verbatim}
+\end{small}
+
+\subsection*{C.4\quad CRAG Evaluation Prompt}
+
+Used to classify retrieved documents as relevant, ambiguous, or irrelevant.
+The classification determines whether to use the document as-is, trigger query
+rewriting, or discard it. Temperature is set to 0 for deterministic judgments.
+
+\begin{small}
+\begin{verbatim}
+You are a relevance evaluator. Given a question and a
+retrieved document, classify the document's relevance
+to answering the question.
+
+Question: {query}
+Document: {document}
+
+Respond with exactly one of:
+- RELEVANT: The document contains information that
+  directly helps answer the question.
+- AMBIGUOUS: The document is partially relevant or
+  tangentially related but may not fully answer the
+  question.
+- IRRELEVANT: The document does not contain useful
+  information for answering the question.
+
+Classification:
+\end{verbatim}
+\end{small}
+
+\subsection*{C.5\quad CRAG Rewrite Prompt}
+
+Used to reformulate the query when retrieved documents are classified as AMBIGUOUS
+or IRRELEVANT, in order to improve retrieval on a second attempt.
+Temperature is set to 0.5 for moderate diversity.
+
+\begin{small}
+\begin{verbatim}
+The following question was used to search a financial
+document corpus, but the retrieved results were not
+sufficiently relevant.
+
+Original question: {query}
+
+Please rewrite this question to be more specific and
+likely to retrieve the correct financial document.
+Focus on including specific financial terms, company
+names, time periods, or metric names that would appear
+in the target document.
+
+Rewritten question:
+\end{verbatim}
+\end{small}
+
+\subsection*{C.6\quad Contextual Retrieval Prompt (Context Generation)}
+
+Used at indexing time to generate a short context prefix for each document (or chunk),
+which is prepended to the text before embedding and BM25 indexing.
+
+\noindent\textit{Chunked mode} (when documents are split into chunks):
+
+\begin{small}
+\begin{verbatim}
+Here is the full document:
+<document>
+{document}
+</document>
+
+Here is a chunk from that document:
+<chunk>
+{chunk}
+</chunk>
+
+Please give a short, succinct context (2-3 sentences)
+to situate this chunk within the overall document for
+the purposes of improving search retrieval of the
+chunk. Answer only with the context, nothing else.
+\end{verbatim}
+\end{small}
+
+\noindent\textit{Whole-document mode} (no chunking, as used in main experiments):
+
+\begin{small}
+\begin{verbatim}
+Here is a document:
+<document>
+{document}
+</document>
+
+Please provide a concise summary context (2-3
+sentences) that captures the key topics and entities in
+this document, for the purpose of improving search
+retrieval. Answer only with the context, nothing else.
+\end{verbatim}
+\end{small}
 
 \end{document}
