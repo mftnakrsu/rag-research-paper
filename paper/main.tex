@@ -509,12 +509,51 @@ with a critical threshold at 50. Format: candidates $\rightarrow$ top-N returned
 \label{fig:reranker_depth}
 \end{figure}
 
+\subsection{Error Analysis}
+\label{sec:errors}
+
+To understand retrieval failures, we analyze the 7,188 queries (31.1\%) where the
+gold document does not appear in the hybrid RRF top-5. We sample 100 failure cases
+and categorize them using GPT-5.4 into five failure modes (Table~\ref{tab:errors}).
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Failure Category} & \textbf{Count} & \textbf{\%} \\
+\midrule
+Table structure mismatch   & 73 & 73\% \\
+Numerical reasoning        & 20 & 20\% \\
+Vocabulary mismatch        &  5 &  5\% \\
+Ambiguous query            &  1 &  1\% \\
+Long document              &  1 &  1\% \\
+\bottomrule
+\end{tabular}
+\caption{Failure mode categorization (100 sampled failures from hybrid RRF top-5).
+Table structure mismatch is the dominant failure mode.}
+\label{tab:errors}
+\end{table}
+
+The dominant failure mode is \textbf{table structure mismatch} (73\%): the answer
+resides in a table whose markdown representation does not embed well as continuous
+text. Standard embedding models struggle to match queries like ``What was net income
+in 2019?'' to tabular rows where ``net income'' and ``2019'' appear in separate
+cells. \textbf{Numerical reasoning} failures (20\%) occur when the question requires
+computation (e.g., year-over-year change) rather than direct lookup.
+
+Per-subset failure rates confirm TAT-DQA as the hardest subset (35.6\% failure rate
+vs.\ 27.2\% for FinQA and 26.0\% for ConvFinQA), consistent with its emphasis on
+diverse numerical operations. Among failures, 71.0\% of gold documents appear in
+\emph{neither} the dense nor BM25 top-5, indicating that these are genuinely
+hard retrieval cases rather than fusion artifacts.
+
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
 
 Our results reveal several actionable insights for practitioners building RAG systems
-over heterogeneous financial documents.
+over heterogeneous text-and-table documents.
 
 \paragraph{Reranking is the single most impactful component.}
 Adding a cross-encoder reranker (Cohere Rerank v4.0 Pro) to hybrid retrieval yields
