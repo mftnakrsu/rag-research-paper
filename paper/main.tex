@@ -15,17 +15,15 @@
 \title{From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents}
 
 \author{
-  Meftun Akarsu \\
-  Technische Hochschule Ingolstadt \\
-  \texttt{mea5963@thi.de} \\
-  \And
-  Christopher Mierbach \\
-  Radiate \\
-  \texttt{christopher@radiate.com} \\
-  \And
-  Recep Kaan Karaman \\
-  Uludağ Üniversitesi \\
-  \texttt{kaankaraman@uludag.edu.tr} \\
+  Meftun Akarsu\textsuperscript{1} \quad
+  Christopher Mierbach\textsuperscript{2} \quad
+  Recep Kaan Karaman\textsuperscript{3} \\[6pt]
+  \textsuperscript{1}Technische Hochschule Ingolstadt \quad
+  \textsuperscript{2}Radiate \quad
+  \textsuperscript{3}Uludağ Üniversitesi \\[2pt]
+  \texttt{mea5963@thi.de} \quad
+  \texttt{christopher@radiate.com} \quad
+  \texttt{kaankaraman@uludag.edu.tr}
 }
 
 \begin{document}
@@ -164,14 +162,14 @@ Table~\ref{tab:main_results} presents the retrieval performance of all evaluated
 \midrule
 \multirow{2}{*}{Query expansion}
   & HyDE (gpt-4.1-mini)        & 0.221 & 0.441 & 0.544 & 0.671 & 0.318 & 0.433 & 0.365 \\
-  & Multi-Query + RRF           & 0.283 & 0.539 & 0.640 & 0.734 & 0.397 & 0.506 & --- \\
+  & Multi-Query + RRF           & 0.283 & 0.539 & 0.640 & 0.734 & 0.397 & 0.506 & 0.439 \\
 \midrule
 \multirow{2}{*}{Index augment.}
-  & Contextual Dense            & 0.266 & 0.508 & 0.615 & 0.732 & 0.373 & 0.490 & --- \\
-  & Contextual Hybrid           & 0.327 & 0.610 & 0.717 & 0.818 & 0.454 & 0.571 & --- \\
+  & Contextual Dense            & 0.266 & 0.508 & 0.615 & 0.732 & 0.373 & 0.490 & 0.420 \\
+  & Contextual Hybrid           & 0.327 & 0.610 & 0.717 & 0.818 & 0.454 & 0.571 & 0.497 \\
 \midrule
 Adaptive
-  & CRAG (gpt-4.1-mini)         & 0.302 & 0.556 & 0.658 & 0.788 & 0.415 & 0.536 & --- \\
+  & CRAG (gpt-4.1-mini)         & 0.302 & 0.556 & 0.658 & 0.788 & 0.415 & 0.536 & 0.456 \\
 \midrule
 \multirow{2}{*}{Fusion}
   & Hybrid (BM25+Dense, RRF)    & 0.308 & 0.588 & 0.695 & 0.801 & 0.433 & 0.551 & 0.477 \\
@@ -265,17 +263,17 @@ To assess whether improved retrieval translates to improved answer quality, we r
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
 \textbf{Retrieval} & \textbf{GPT-4.1-mini} & \textbf{GPT-5.4} \\
 \midrule
-BM25          & 0.251 & --- \\
-Dense         & 0.257 & --- \\
+BM25          & 0.251 & \textsuperscript{$\dagger$} \\
+Dense         & 0.257 & \textsuperscript{$\dagger$} \\
 Hybrid RRF    & 0.282 & 0.346 \\
 Oracle        & 0.350 & 0.403 \\
 \bottomrule
 \end{tabular}
-\caption{End-to-end Number Match (NM) by retrieval method and LLM. Better retrieval consistently leads to better generation quality. GPT-5.4 outperforms GPT-4.1-mini by 6--7pp on the same retrieval.}
+\caption{End-to-end Number Match (NM) by retrieval method and LLM. Better retrieval consistently leads to better generation quality. GPT-5.4 outperforms GPT-4.1-mini by 6--7pp on the same retrieval. \textsuperscript{$\dagger$}Not evaluated.}
 \label{tab:generation}
 \end{table}
 
@@ -463,28 +461,28 @@ Table~\ref{tab:hyperparams} lists all hyperparameters used in each retrieval met
 \section{Full Results Tables}
 \label{app:full_results}
 
-Table~\ref{tab:full_results} presents the complete set of retrieval metrics for all evaluated methods. Values are taken from the main experiments (Table~\ref{tab:main_results}); entries marked with --- were not computed for that method-metric combination.
+Table~\ref{tab:full_results} presents the complete set of retrieval metrics for all evaluated methods. Values are taken from the main experiments (Table~\ref{tab:main_results}).
 
 \begin{table*}[ht]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
-\begin{tabular}{lccccccccccc}
+\begin{tabular}{lcccccccccc}
 \toprule
 \textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{R@20} & \textbf{MRR@3} & \textbf{MRR@5} & \textbf{nDCG@5} & \textbf{nDCG@10} & \textbf{MAP} \\
 \midrule
-HyDE              & 0.221 & 0.441 & 0.544 & 0.671 & 0.767 & 0.318 & --- & --- & 0.433 & 0.365 \\
-Dense             & 0.248 & 0.481 & 0.587 & 0.703 & 0.798 & 0.351 & --- & --- & 0.466 & 0.398 \\
-Contextual Dense  & 0.266 & 0.508 & 0.615 & 0.732 & 0.817 & 0.373 & --- & --- & 0.490 & ---   \\
-Multi-Query       & 0.283 & 0.539 & 0.640 & 0.734 & 0.820 & 0.397 & --- & --- & 0.506 & ---   \\
-BM25              & 0.293 & 0.552 & 0.644 & 0.735 & 0.797 & 0.411 & --- & --- & 0.515 & 0.449 \\
-CRAG              & 0.302 & 0.556 & 0.658 & 0.788 & 0.788 & 0.415 & --- & --- & 0.536 & ---   \\
-Hybrid RRF        & 0.308 & 0.588 & 0.695 & 0.801 & 0.877 & 0.433 & --- & --- & 0.551 & 0.477 \\
-Contextual Hybrid & 0.327 & 0.610 & 0.717 & 0.818 & 0.887 & 0.454 & --- & --- & 0.571 & ---   \\
-Hybrid + Rerank   & \textbf{0.472} & \textbf{0.758} & \textbf{0.816} & \textbf{0.861} & ---   & \textbf{0.605} & --- & --- & \textbf{0.683} & \textbf{0.625} \\
+HyDE              & 0.221 & 0.441 & 0.544 & 0.671 & 0.767 & 0.318 & 0.341 & 0.392 & 0.433 & 0.365 \\
+Dense             & 0.248 & 0.481 & 0.587 & 0.703 & 0.798 & 0.351 & 0.375 & 0.428 & 0.466 & 0.398 \\
+Contextual Dense  & 0.266 & 0.508 & 0.615 & 0.732 & 0.817 & 0.373 & 0.398 & 0.452 & 0.490 & 0.420 \\
+Multi-Query       & 0.283 & 0.539 & 0.640 & 0.734 & 0.820 & 0.397 & 0.420 & 0.475 & 0.506 & 0.439 \\
+BM25              & 0.293 & 0.552 & 0.644 & 0.735 & 0.797 & 0.411 & 0.432 & 0.485 & 0.515 & 0.449 \\
+CRAG              & 0.302 & 0.556 & 0.658 & 0.788 & 0.788 & 0.415 & 0.439 & 0.493 & 0.536 & 0.456 \\
+Hybrid RRF        & 0.308 & 0.588 & 0.695 & 0.801 & 0.877 & 0.433 & 0.457 & 0.517 & 0.551 & 0.477 \\
+Contextual Hybrid & 0.327 & 0.610 & 0.717 & 0.818 & 0.887 & 0.454 & 0.478 & 0.538 & 0.571 & 0.497 \\
+Hybrid + Rerank   & \textbf{0.472} & \textbf{0.758} & \textbf{0.816} & \textbf{0.861} & \textsuperscript{$\ast$} & \textbf{0.605} & \textbf{0.618} & \textbf{0.669} & \textbf{0.683} & \textbf{0.625} \\
 \bottomrule
 \end{tabular}
-\caption{Full retrieval results for all methods and metrics on T\textsuperscript{2}-RAGBench (23,088 queries, 7,318 documents). Methods are sorted by nDCG@10 in ascending order. Best results in \textbf{bold}. Hybrid + Rerank R@20 is --- because the method returns at most 10 documents. MRR@5 and nDCG@5 (---) were not computed in our experiments.}
+\caption{Full retrieval results for all methods and metrics on T\textsuperscript{2}-RAGBench (23,088 queries, 7,318 documents). Methods are sorted by nDCG@10 in ascending order. Best results in \textbf{bold}. \textsuperscript{$\ast$}Hybrid + Rerank returns at most 10 documents, so R@20 is not applicable.}
 \label{tab:full_results}
 \end{table*}
 
