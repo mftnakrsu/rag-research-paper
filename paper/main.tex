@@ -61,7 +61,7 @@ We study this through systematic benchmarking. Using a financial QA benchmark of
 Classical sparse retrievers such as BM25 remain competitive baselines, particularly in zero-shot out-of-domain settings \citep{thakur2021beir}, due to their lexical precision. Learned sparse models like SPLADE \citep{formal2021splade} extend this by learning neural term expansion weights, and recent work shows that decoder-only LLM backbones further improve sparse retrieval quality \citep{doshi2024mistralsplade}. On the dense side, dual-encoder architectures pioneered by DPR \citep{karpukhin2020dpr} encode queries and passages into a shared embedding space. Subsequent models including E5 \citep{wang2022e5}, E5-Mistral \citep{wang2024e5mistral}, and BGE-M3 \citep{chen2024bgem3} have advanced the state of the art on MTEB \citep{muennighoff2023mteb} and MMTEB \citep{enevoldsen2025mmteb} through contrastive pretraining and instruction-tuned embedding generation. Late-interaction models such as ColBERTv2 \citep{santhanam2022colbertv2} and Jina-ColBERT-v2 \citep{sturua2024jinacolbert} retain per-token representations for fine-grained matching while still allowing document precomputation. Hybrid retrieval combines sparse and dense signals via Reciprocal Rank Fusion \citep{cormack2009rrf} or convex score combination, consistently improving recall by 15--30\% over single-method pipelines \citep{li2025ragbestpractices}. Two-stage reranking with cross-encoder models further refines ranked lists, with recent benchmarks reporting up to 28\% nDCG@10 improvement at modest latency cost \citep{gao2024ragsurvey}.
 
 \paragraph{Query-Side Retrieval Strategies.}
-Several methods improve retrieval by modifying the query rather than the index. HyDE \citep{gao2023hyde} generates a hypothetical answer document at query time and retrieves using its embedding rather than the original query. RAG-Fusion \citep{raudaschl2023ragfusion} issues multiple LLM-rewritten query variants and merges results via RRF. Both approaches aim to close the gap between short user queries and longer document passages, though their effectiveness depends heavily on whether the LLM can generate plausible pseudo-documents for the target domain.
+Several methods improve retrieval by modifying the query rather than the index. HyDE \citep{gao2022hyde} generates a hypothetical answer document at query time and retrieves using its embedding rather than the original query. RAG-Fusion \citep{raudaschl2023ragfusion} issues multiple LLM-rewritten query variants and merges results via RRF. Both approaches aim to close the gap between short user queries and longer document passages, though their effectiveness depends heavily on whether the LLM can generate plausible pseudo-documents for the target domain.
 
 \paragraph{Index-Side and Structural Retrieval Strategies.}
 An alternative is to enrich document representations at indexing time. Contextual Retrieval \citep{anthropic2024contextual} prepends LLM-generated summaries to each chunk before indexing, while HyPE \citep{vake2025hype} precomputes hypothetical questions per chunk, transforming retrieval into question-to-question matching and improving context precision by up to 42 percentage points without added query-time cost. Late Chunking \citep{guenther2024latechunking} preserves cross-chunk context by applying long-context embeddings before splitting. At a higher level of abstraction, RAPTOR \citep{sarthi2024raptor} builds recursive tree-structured summaries for multi-granularity retrieval, and GraphRAG \citep{edge2024graphrag} constructs entity-relation graphs for query-focused summarization. On the adaptive front, Self-RAG \citep{asai2023selfrag} trains models to decide whether retrieval is needed at all, while CRAG \citep{yan2024crag} triggers corrective web searches when retrieved document quality is low.
@@ -105,7 +105,7 @@ with smoothing constant $k = 60$, the value used in the original paper. We retri
 We apply a two-stage pipeline: hybrid RRF retrieves 50 candidate documents, which are then reranked by Cohere Rerank v4.0 Pro \citep{cohere2025rerank4}, returning the top 10. Unlike bi-encoder models that encode queries and documents independently, cross-encoders process the query and each candidate jointly, producing query-aware relevance scores that capture semantic relationships pointwise retrieval cannot \citep{nogueira2019passage}. Cohere Rerank v4.0 Pro was benchmarked specifically on finance-domain retrieval tasks at release, making it well suited to this corpus. This configuration measures whether the added cost of a reranking stage produces meaningful gains on text-and-table documents.
 
 \paragraph{HyDE.}
-HyDE \citep{gao2023hyde} addresses the asymmetry between short queries and long documents by generating a hypothetical answer passage at query time and retrieving with its embedding rather than the original query embedding. The generated document may contain hallucinations, but the dense encoder grounds it to the actual corpus by mapping it into the same embedding space as real documents \citep{gao2023hyde}. We prompt GPT-4.1-mini at temperature 0 to generate a plausible answer for each query, embed it with \texttt{text-embedding-3-large}, and retrieve against the corpus index. HyDE was originally shown to outperform unsupervised dense retrievers on web search, QA, and fact verification tasks \citep{gao2023hyde}; its behaviour on numerical financial QA is one of the questions this paper investigates.
+HyDE \citep{gao2022hyde} addresses the asymmetry between short queries and long documents by generating a hypothetical answer passage at query time and retrieving with its embedding rather than the original query embedding. The generated document may contain hallucinations, but the dense encoder grounds it to the actual corpus by mapping it into the same embedding space as real documents \citep{gao2022hyde}. We prompt GPT-4.1-mini at temperature 0 to generate a plausible answer for each query, embed it with \texttt{text-embedding-3-large}, and retrieve against the corpus index. HyDE was originally shown to outperform unsupervised dense retrievers on web search, QA, and fact verification tasks \citep{gao2022hyde}; its behaviour on numerical financial QA is one of the questions this paper investigates.
 
 \paragraph{Multi-Query Retrieval.}
 Multi-query retrieval issues several reformulations of each query to increase recall across alternative phrasings \citep{raudaschl2023ragfusion}. We prompt GPT-4.1-mini at temperature 0 to generate three semantically diverse variants per query, retrieve top-$k$ results for each independently using dense retrieval, and merge the four ranked lists (original plus three variants) via RRF ($k = 60$). This approach recovers relevant documents that a single query phrasing may miss, at the cost of additional LLM inference per query.
@@ -151,7 +151,7 @@ Table~\ref{tab:main_results} presents the retrieval performance of all evaluated
 
 \begin{table*}[t]
 \centering
-\small
+\footnotesize
 \begin{tabular}{llccccccc}
 \toprule
 \textbf{Category} & \textbf{Method} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{MRR@3} & \textbf{nDCG@10} & \textbf{MAP} \\
@@ -227,21 +227,21 @@ TAT-DQA emerges as the most challenging subset across all methods (Recall@5: 0.6
 \paragraph{Recall@k Curves.}
 Figure~\ref{fig:recall_curve} shows the recall-depth trade-off across all methods. Hybrid RRF maintains a consistent advantage at every value of $k$, with the gap widening at lower $k$ values where ranking precision matters most.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/recall_at_k.pdf}
+\includegraphics[width=\textwidth]{figures/recall_at_k.pdf}
 \caption{Recall@$k$ curves for BM25, dense (text-embedding-3-large), and hybrid RRF retrieval. Hybrid fusion consistently outperforms both single-method baselines, with the largest gains at small $k$.}
 \label{fig:recall_curve}
-\end{figure}
+\end{figure*}
 
 Figure~\ref{fig:bar_comparison} provides a side-by-side comparison across all primary metrics. BM25 outperforms dense retrieval on every metric, while hybrid RRF achieves the best scores across the board.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/main_comparison.pdf}
+\includegraphics[width=\textwidth]{figures/main_comparison.pdf}
 \caption{Grouped comparison of retrieval methods across five metrics. Hybrid RRF (green) dominates, while BM25 (blue) outperforms dense retrieval (orange) on this financial text-and-table benchmark.}
 \label{fig:bar_comparison}
-\end{figure}
+\end{figure*}
 
 \paragraph{Subset-Level Patterns.}
 Figure~\ref{fig:heatmap} visualizes the Recall@5 performance across methods and dataset subsets. ConvFinQA is the easiest subset for all methods, while TAT-DQA presents the greatest challenge. The performance gap between methods is most pronounced on TAT-DQA, where hybrid fusion yields the largest relative gain.
@@ -292,12 +292,12 @@ Better retrieval consistently leads to better answer quality (BM25: 0.251 $\righ
 \paragraph{Fusion method.}
 We compare Reciprocal Rank Fusion (RRF) with Convex Combination (CC) at varying parameters (Figure~\ref{fig:fusion_ablation}). CC with $\alpha = 0.5$ (equal weighting of BM25 and dense scores) achieves Recall@5 of 0.726, outperforming RRF ($k=60$) at 0.699. Among RRF variants, lower $k$ values emphasize top-ranked documents more aggressively; $k=10$ achieves the best RRF performance (0.716). Both findings suggest that balanced fusion of sparse and dense signals is optimal for this benchmark.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/fusion_ablation.pdf}
+\includegraphics[width=\textwidth]{figures/fusion_ablation.pdf}
 \caption{Fusion method ablation. Left: Convex Combination with varying $\alpha$ (dense weight); $\alpha = 0.5$ is optimal. Right: RRF with varying $k$; lower $k$ yields slightly better results.}
 \label{fig:fusion_ablation}
-\end{figure}
+\end{figure*}
 
 \paragraph{Reranker depth.}
 We vary the number of candidates passed to the cross-encoder reranker (Figure~\ref{fig:reranker_depth}). With only 20 candidates, reranking is ineffective (Recall@5: 0.458), as relevant documents are often not in the candidate pool. Performance increases sharply at 50 candidates (0.826) and continues to improve at 100 (0.888). Increasing the number of returned results from 10 to 20 provides marginal gains (0.826 $\rightarrow$ 0.878), suggesting that the top-10 already captures most relevant documents after reranking.
@@ -382,7 +382,6 @@ Future work includes evaluating ColBERT late interaction, RAPTOR tree-based retr
 We thank Christopher Mierbach and Radiate for generously providing Azure AI compute credits that made the large-scale experiments in this work possible.
 
 \bibliography{references}
-\bibliographystyle{acl_natbib}
 
 \appendix
 
@@ -393,8 +392,9 @@ Table~\ref{tab:hyperparams} lists all hyperparameters used in each retrieval met
 
 \begin{table*}[ht]
 \centering
-\small
-\begin{tabular}{llll}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llll@{}}
 \toprule
 \textbf{Method} & \textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
 \midrule
@@ -497,13 +497,13 @@ This appendix documents the exact prompt templates used in all LLM-dependent ret
 
 Used to extract the final answer from retrieved context during end-to-end evaluation.
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
-Answer the following question based ONLY on the
-provided context.
-If the answer is a number, provide just the number.
-If you cannot answer from the context, say
-"UNANSWERABLE".
+Answer the following question based ONLY on
+the provided context.
+If the answer is a number, provide just the
+number. If you cannot answer from the
+context, say "UNANSWERABLE".
 
 Context:
 {context}
@@ -512,88 +512,94 @@ Question: {question}
 
 Answer:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \subsection*{C.2\quad HyDE Prompt (Hypothetical Document Generation)}
 
 Used to generate a hypothetical answer passage whose embedding replaces the query embedding for dense retrieval.
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
-Given the following question about financial data,
-write a short passage that would contain the answer.
-Include specific numbers and financial terms.
+Given the following question about financial
+data, write a short passage that would
+contain the answer. Include specific numbers
+and financial terms.
 Question: {query}
 Passage:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \noindent\textit{Fallback prompt} (used when the config template is not provided):
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
-Please write a short passage that directly answers
-the following question. The passage should be
-factual, detailed, and roughly the length of a
-typical encyclopedia paragraph.
+Please write a short passage that directly
+answers the following question. The passage
+should be factual, detailed, and roughly
+the length of a typical encyclopedia
+paragraph.
 
 Question: {query}
 
 Passage:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \subsection*{C.3\quad Multi-Query Prompt (Query Variant Generation)}
 
 Used to generate semantically diverse reformulations of the original query. The original query plus all variants are retrieved independently and merged via RRF.
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
 You are a helpful assistant that generates
-alternative search queries. Given the following
-question, generate {n} alternative phrasings that
-capture the same information need but use different
-wording or perspectives. Return each query on its
-own line, numbered (e.g. 1. ... 2. ...). Do not
-include any other text.
+alternative search queries. Given the
+following question, generate {n} alternative
+phrasings that capture the same information
+need but use different wording or
+perspectives. Return each query on its own
+line, numbered (e.g. 1. ... 2. ...).
+Do not include any other text.
 
 Original question: {query}
 
 Alternative queries:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \subsection*{C.4\quad CRAG Evaluation Prompt}
 
 Used to classify retrieved documents as relevant, ambiguous, or irrelevant. Temperature is set to 0 for deterministic judgments.
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
-You are a relevance evaluator. Given a question and
-a retrieved document, classify the document's
-relevance to answering the question.
+You are a relevance evaluator. Given a
+question and a retrieved document, classify
+the document's relevance to answering the
+question.
 
 Question: {query}
 Document: {document}
 
 Respond with exactly one of:
-- RELEVANT: The document contains information that
-  directly helps answer the question.
-- AMBIGUOUS: The document is partially relevant or
-  tangentially related but may not fully answer the
-  question.
-- IRRELEVANT: The document does not contain useful
-  information for answering the question.
+- RELEVANT: The document contains
+  information that directly helps answer
+  the question.
+- AMBIGUOUS: The document is partially
+  relevant or tangentially related but
+  may not fully answer the question.
+- IRRELEVANT: The document does not
+  contain useful information for
+  answering the question.
 
 Classification:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \subsection*{C.5\quad CRAG Rewrite Prompt}
 
 Used to reformulate the query when retrieved documents are classified as AMBIGUOUS or IRRELEVANT. Temperature is set to 0.5 for moderate diversity.
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
 The following question was used to search a
 financial document corpus, but the retrieved
@@ -601,15 +607,16 @@ results were not sufficiently relevant.
 
 Original question: {query}
 
-Please rewrite this question to be more specific
-and likely to retrieve the correct financial
-document. Focus on including specific financial
-terms, company names, time periods, or metric names
-that would appear in the target document.
+Please rewrite this question to be more
+specific and likely to retrieve the correct
+financial document. Focus on including
+specific financial terms, company names,
+time periods, or metric names that would
+appear in the target document.
 
 Rewritten question:
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \subsection*{C.6\quad Contextual Retrieval Prompt (Context Generation)}
 
@@ -617,7 +624,7 @@ Used at indexing time to generate a short context prefix for each document, prep
 
 \noindent\textit{Chunked mode} (when documents are split into chunks):
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
 Here is the full document:
 <document>
@@ -629,29 +636,30 @@ Here is a chunk from that document:
 {chunk}
 </chunk>
 
-Please give a short, succinct context (2-3
-sentences) to situate this chunk within the overall
-document for the purposes of improving search
-retrieval of the chunk. Answer only with the
+Please give a short, succinct context
+(2-3 sentences) to situate this chunk
+within the overall document for the
+purposes of improving search retrieval
+of the chunk. Answer only with the
 context, nothing else.
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \noindent\textit{Whole-document mode} (no chunking, as used in main experiments):
 
-\begin{small}
+\begin{scriptsize}
 \begin{verbatim}
 Here is a document:
 <document>
 {document}
 </document>
 
-Please provide a concise summary context (2-3
-sentences) that captures the key topics and
-entities in this document, for the purpose of
-improving search retrieval. Answer only with the
-context, nothing else.
+Please provide a concise summary context
+(2-3 sentences) that captures the key
+topics and entities in this document, for
+the purpose of improving search retrieval.
+Answer only with the context, nothing else.
 \end{verbatim}
-\end{small}
+\end{scriptsize}
 
 \end{document}
